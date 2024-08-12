@@ -58,7 +58,7 @@ class Content(BaseModel):
 
         m, _ = mimetypes.guess_type(path)
         with open(path, "rb") as f:
-            return cls(content_type=m, data=f.read())
+            return cls(id="none-for-now", content_type=m, data=f.read())
 
 
 class ContentMetadata(BaseModel):

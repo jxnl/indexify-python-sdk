@@ -68,6 +68,7 @@ class Graph:
     Note: The user has to match the sizes of the lists to make sure they line up otherwise a None is used as a default.
     """
     def steps(self, from_node: extractor, to_nodes: List[extractor], prefilter_predicates: List[str] = []) -> Self:
+        print(f'{to_nodes}, {prefilter_predicates}, {prefilter_predicates}')
         for t_n, p in itertools.zip_longest(to_nodes, prefilter_predicates, fillvalue=None):
             self.step(from_node=from_node, to_node=t_n, prefilter_predicates=p)
 
