@@ -188,10 +188,16 @@ class TestIntegrationTest(unittest.TestCase):
         name = "minilml6_test_add_extraction_policy"
         namespace_name = "test.bindextractor"
         client = IndexifyClient.create_namespace(namespace_name)
-        client.add_extraction_policy(
-            "tensorlake/minilm-l6",
-            name,
-        )
+        
+        extraction_graph_spec = f"""
+        name: '{name}_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: '{name}'
+        """
+    
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
 
     def test_get_metadata(self):
         """
@@ -224,35 +230,52 @@ class TestIntegrationTest(unittest.TestCase):
             assert len(metadata) > 0
 
     def test_extractor_input_params(self):
-        name = "minilml6_test_extractor_input_params"
+        name = "chunk_test_extractor_input_params"
         client = IndexifyClient.create_namespace(namespace="test.extractorinputparams")
-        client.add_extraction_policy(
-            extractor="tensorlake/minilm-l6",
-            name=name,
-            input_params={
-                "chunk_size": 300,
-                "overlap": 50,
-                "text_splitter": "char",
-            },
-        )
+        
+        extraction_graph_spec = f"""
+        name: '{name}_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/chunk-extractor'
+            name: '{name}'
+            input_params:
+              text_splitter: 'recursive'
+              chunk_size: 1000
+              overlap: 200
+        """
+    
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
 
     def test_get_bindings(self):
         name = "minilml6_test_get_bindings"
         client = IndexifyClient.create_namespace("test.getbindings")
-        client.add_extraction_policy(
-            "tensorlake/minilm-l6",
-            name,
-        )
+        
+        extraction_graph_spec = f"""
+        name: '{name}_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: '{name}'
+        """
+    
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
         bindings = client.extraction_policies
         assert len(list(filter(lambda x: x.name.startswith(name), bindings))) == 1
 
     def test_get_indexes(self):
         name = "minilml6_test_get_indexes"
         client = IndexifyClient.create_namespace("test.getindexes")
-        client.add_extraction_policy(
-            "tensorlake/minilm-l6",
-            name,
-        )
+        
+        extraction_graph_spec = f"""
+        name: '{name}_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: '{name}'
+        """
+    
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
         indexes = client.indexes()
         assert len(list(filter(lambda x: x.get("name").startswith(name), indexes))) == 1
 
