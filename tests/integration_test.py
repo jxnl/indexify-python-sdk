@@ -1,5 +1,5 @@
 from indexify.client import IndexifyClient, Document
-from indexify import ExtractionPolicy
+from indexify.extraction_policy import ExtractionPolicy
 import time
 import os
 import unittest
