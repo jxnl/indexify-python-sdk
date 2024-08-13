@@ -33,16 +33,9 @@ class TestIntegrationTest(unittest.TestCase):
 
     def test_create_namespace(self):
         namespace_name = "test.createnamespace"
-
-        minilm_binding = ExtractionPolicy(
-            extractor="tensorlake/minilm-l6",
-            name="minilm-l6",
-            content_source="source",
-            input_params={},
-        )
-
+        
         client = IndexifyClient.create_namespace(
-            namespace_name, extraction_policies=[minilm_binding]
+            namespace_name
         )
         assert client.namespace == namespace_name
 
