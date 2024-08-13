@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexify-dspy"
-version = "0.0.32"
+version = "0.0.36"
 description = "Indexify Retreiver for the DSPy python library for building LLM applications"
 authors = ["Lucas Jackson <lucas@tensorlake.ai>", "Diptanu Choudhury <diptanuc@gmail.com>"]
 readme = "README.md"
