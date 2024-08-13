@@ -2,9 +2,9 @@ import unittest
 import os
 import shutil
 import tempfile
-from indexify.data_loaders import SimpleDirectoryLoader, FileMetadata
+from indexify.data_loaders import LocalDirectoryLoader, FileMetadata
 
-class TestSimpleDirectoryLoader(unittest.TestCase):
+class TestLocalDirectoryLoader(unittest.TestCase):
     def setUp(self):
         # Create a temporary directory
         self.test_dir = tempfile.mkdtemp()
@@ -25,7 +25,7 @@ class TestSimpleDirectoryLoader(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_load_with_extensions(self):
-        loader = SimpleDirectoryLoader(self.test_dir, file_extensions=[".txt"])
+        loader = LocalDirectoryLoader(self.test_dir, file_extensions=[".txt"])
         file_metadata_list = loader.load()
         
         # Check that only .txt files are loaded
@@ -35,7 +35,7 @@ class TestSimpleDirectoryLoader(unittest.TestCase):
         self.assertIn(os.path.join(self.test_dir, "test3.txt"), loaded_files)
 
     def test_load_without_extensions(self):
-        loader = SimpleDirectoryLoader(self.test_dir)
+        loader = LocalDirectoryLoader(self.test_dir)
         file_metadata_list = loader.load()
         
         # Check that all files are loaded
@@ -45,7 +45,7 @@ class TestSimpleDirectoryLoader(unittest.TestCase):
             self.assertIn(os.path.join(self.test_dir, file_name), loaded_files)
 
     def test_state(self):
-        loader = SimpleDirectoryLoader(self.test_dir, file_extensions=[".txt"])
+        loader = LocalDirectoryLoader(self.test_dir, file_extensions=[".txt"])
         loader.load()
         state = loader.state()
         

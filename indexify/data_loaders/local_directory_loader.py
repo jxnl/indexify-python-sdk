@@ -3,7 +3,7 @@ from typing import List, Optional
 import os
 
 
-class SimpleDirectoryLoader(DataLoader):
+class LocalDirectoryLoader(DataLoader):
     def __init__(self, directory: str, file_extensions: Optional[List[str]] = None):
         self.directory = directory
         self.file_extensions = file_extensions

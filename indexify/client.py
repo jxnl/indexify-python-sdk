@@ -623,7 +623,9 @@ class IndexifyClient:
         content_ids = []
         files = loader.load()
         for file_metadata in files:
-            content_id = self.upload_file(extraction_graph, file_metadata.read_all_bytes(), labels={"file_name", file_metadata.path})
+            labels={"file_name": file_metadata.path}
+            print(labels)
+            content_id = self.upload_file(extraction_graph, file_metadata.read_all_bytes(), labels=labels)
             content_ids.append(content_id)
         return content_ids
 
