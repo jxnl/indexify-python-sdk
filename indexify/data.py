@@ -81,12 +81,3 @@ class ContentMetadata(BaseModel):
             mime_type=json["mime_type"],
             extracted_metadata=json["extracted_metadata"],
         )
-
-    @classmethod
-    def load_from_file(self, path: str):
-        self.content = Content.from_file(path)
-
-    def get_bytes(self, n: int = -1):
-        if self.content:
-            return self.content.data[:n]
-        return None

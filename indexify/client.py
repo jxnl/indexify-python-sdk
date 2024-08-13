@@ -10,7 +10,7 @@ from .extraction_policy import ExtractionGraph
 from .utils import json_set_default
 from .error import Error
 from .data import Content, ContentMetadata
-from .directory_loader import DataLoader
+from .data_loaders import DataLoader
 from indexify.exceptions import ApiException
 from dataclasses import dataclass
 from typing import List, Optional, Union, Dict
@@ -578,7 +578,7 @@ class IndexifyClient:
     def upload_file(
         self,
         extraction_graphs: Union[str, List[str]],
-        path: Union[str, ContentMetadata],  # Update to accept ContentMetadata
+        path: Union[str, bytes], 
         id=None,
         labels: dict = {},
     ) -> str:
@@ -599,8 +599,8 @@ class IndexifyClient:
         if isinstance(path, str):
             with open(path, "rb") as f:
                 file_content = f.read()
-        elif isinstance(path, ContentMetadata):
-            file_content = path.get_bytes()
+        elif isinstance(path, bytes):
+            file_content = path
         else:
             raise ValueError("path must be either a string (file path), or ContentMetadata object")
 
@@ -615,15 +615,16 @@ class IndexifyClient:
         content_id = response_json["content_id"]
         return content_id
     
-    def ingest_from_loader(self, loader: DataLoader, extraction_graph: str, limit: int = 100) -> List[str]:
+    def ingest_from_loader(self, loader: DataLoader, extraction_graph: str) -> List[str]:
         """
         Loads content using the loader, uploads them to Indexify and returns the content ids.
+        loader: DataLoader: The DataLoader object to use for loading content
+        extraction_graph: str: The name of the extraction graph to use for extraction
         """
         content_ids = []
-        contents = loader.load(limit)
-        for content in contents:
-            content_id = self.upload_file(extraction_graph, content)
-            self.wait_for_extraction(content_id)
+        files = loader.load()
+        for file_metadata in files:
+            content_id = self.upload_file(extraction_graph, file_metadata.read_all_bytes(), labels={"file_name", file_metadata.path})
             content_ids.append(content_id)
         return content_ids
 
