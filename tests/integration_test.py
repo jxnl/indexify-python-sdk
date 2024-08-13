@@ -103,18 +103,24 @@ class TestIntegrationTest(unittest.TestCase):
         extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
         client.create_extraction_graph(extraction_graph)
 
-        client.add_documents(
+        content_id = client.add_documents(
             "test_get_content_graph",
             [Document(text="one", labels={"l1": "test"}, id=None), "two", "three"]
         )
-        content = client.get_extracted_content()
+        content = client.get_extracted_content(
+            ingested_content_id=content_id,
+            graph_name="test_get_content_graph",
+            policy_name="content_policy"
+        )
         assert len(content) == 3
         # validate content_url
         for c in content:
             assert c.get("content_url") is not None
 
         # parent doesn't exist
-        content = client.get_extracted_content(content_id="idontexist")
+        content = client.get_extracted_content(ingested_content_id="idontexist",
+            graph_name="test_get_content_graph",
+            policy_name="content_policy")
         assert len(content) == 0
 
     def test_download_content(self):
@@ -131,12 +137,15 @@ class TestIntegrationTest(unittest.TestCase):
         extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
         client.create_extraction_graph(extraction_graph)
 
-        client.add_documents(
+        content_id = client.add_documents(
             "test_download_graph",
             ["test download"],
             doc_id=None
         )
-        content = client.get_extracted_content()
+        content = client.get_extracted_content(
+            ingested_content_id=content_id,
+            graph_name="test_download_graph",
+            policy_name="download_policy")
         assert len(content) == 1
 
         data = client.download_content(content[0].get('id'))
@@ -202,20 +211,30 @@ class TestIntegrationTest(unittest.TestCase):
         namespace_name = "metadatatest"
         client = IndexifyClient.create_namespace(namespace_name)
         time.sleep(2)
-        client.add_extraction_policy(
-            "tensorlake/wikipedia",
-            "wikipedia",
-        )
+
+        extraction_graph_spec = """
+        name: 'metadatatest_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/wikipedia'
+            name: 'metadatatest_policy'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        self.client.create_extraction_graph(extraction_graph)
 
         time.sleep(2)
-        client.upload_file(
+        content_id = client.upload_file(
+            "metadatatest_graph",
             os.path.join(
                 os.path.dirname(__file__), "files", "steph_curry_wikipedia.html"
-            ),
-            id=None
+            )
         )
         time.sleep(25)
-        content = client.get_extracted_content()
+        content = client.get_extracted_content(
+            ingested_content_id=content_id,
+            graph_name="test_get_content_graph",
+            policy_name="content_policy"
+        )
         content = list(filter(lambda x: x.get("source") != "ingestion", content))
         assert len(content) > 0
         for c in content:
@@ -364,10 +383,20 @@ class TestIntegrationTest(unittest.TestCase):
         # client = IndexifyClient.create_namespace(namespace_name)
         client = IndexifyClient()
         time.sleep(2)
-        client.add_extraction_policy(name="wikipedia", extractor="tensorlake/wikipedia")
+
+        extraction_graph_spec = """
+        name: 'sqlquerytest_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/wikipedia'
+            name: 'sqlquerytest_policy'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        self.client.create_extraction_graph(extraction_graph)
 
         time.sleep(2)
-        client.upload_file(
+        content_id = client.upload_file(
+            "sqlquerytest_graph",
             os.path.join(
                 os.path.dirname(__file__), "files", "steph_curry_wikipedia.html"
             )
