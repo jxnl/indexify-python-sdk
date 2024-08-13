@@ -577,8 +577,9 @@ class IndexifyClient:
 
     def upload_file(
         self,
-        extraction_graphs: Union[str, List[str]],
-        path: Union[str, bytes], 
+        extraction_graph: str,
+        path: str, 
+        file_bytes:bytes=None,
         id=None,
         labels: dict = {},
     ) -> str:
@@ -586,30 +587,31 @@ class IndexifyClient:
         Upload a file from a path or the bytes.
 
         Args:
+            - extraction_graph (str): name of the extraction graph to use for extraction
             - path (Union[str, bytes]): relative path to the file to be uploaded, or the bytes of the file
             - labels (dict): labels to be associated with the file
         """
-        if isinstance(extraction_graphs, str):
-            extraction_graphs = [extraction_graphs]
         params = {}
         if id is not None:
             params["id"] = id
 
-        if isinstance(path, str):
+        if file_bytes == None:
             with open(path, "rb") as f:
-                file_content = f.read()
-        elif isinstance(path, bytes):
-            file_content = path
+                response = self.post(
+                    f"namespaces/{self.namespace}/extraction_graphs/{extraction_graph}/extract",
+                    files={"file": f},
+                    data={"labels": json.dumps(labels)},
+                    params=params,
+                )
         else:
-            raise ValueError("path must be either a string (file path), or ContentMetadata object")
-
-        for extraction_graph in extraction_graphs:
             response = self.post(
-                f"namespaces/{self.namespace}/extraction_graphs/{extraction_graph}/extract",
-                files={"file": file_content},
-                data={"labels": json.dumps(labels)},
-                params=params,
+                    f"namespaces/{self.namespace}/extraction_graphs/{extraction_graph}/extract",
+                    files={"file": (path, file_bytes)},
+                    data={"labels": json.dumps(labels)},
+                    params=params,
             )
+            file_content = path
+        
         response_json = response.json()
         content_id = response_json["content_id"]
         return content_id
@@ -625,7 +627,7 @@ class IndexifyClient:
         for file_metadata in files:
             labels={"file_name": file_metadata.path}
             print(labels)
-            content_id = self.upload_file(extraction_graph, file_metadata.read_all_bytes(), labels=labels)
+            content_id = self.upload_file(extraction_graph, file_metadata.path, file_metadata.read_all_bytes(), labels=labels)
             content_ids.append(content_id)
         return content_ids
 
@@ -697,23 +699,20 @@ class IndexifyClient:
 
     def ingest_remote_file(
         self,
-        extraction_graphs: Union[str, List[str]],
+        extraction_graph: str,
         url: str,
         mime_type: str,
         labels: Dict[str, str],
         id=None,
     ):
-        if isinstance(extraction_graphs, str):
-            extraction_graphs = [extraction_graphs]
         req = {
             "url": url,
             "mime_type": mime_type,
             "labels": labels,
             "id": id,
-            "extraction_graph_names": extraction_graphs,
         }
         response = self.post(
-            f"namespaces/{self.namespace}/ingest_remote_file",
+            f"namespaces/{self.namespace}/extraction_graphs/{extraction_graph}/extract_remote",
             json=req,
             headers={"Content-Type": "application/json"},
         )
