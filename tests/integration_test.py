@@ -1,4 +1,4 @@
-from indexify.client import IndexifyClient, Document
+from indexify.client import IndexifyClient, Document, ExtractionGraph
 from indexify.extraction_policy import ExtractionPolicy
 import time
 import os
@@ -51,7 +51,18 @@ class TestIntegrationTest(unittest.TestCase):
         namespace_name = "test.adddocuments"
         client = IndexifyClient.create_namespace(namespace_name)
 
+        extraction_graph_spec = """
+        name: 'test_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: 'test_policy'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
+
         client.add_documents(
+            "test_graph",
             Document(
                 text="This is a test",
                 labels={"source": "test"},
@@ -61,6 +72,7 @@ class TestIntegrationTest(unittest.TestCase):
 
         # Add multiple documents
         client.add_documents(
+            "test_graph",
             [
                 Document(
                     text="This is a new test",
@@ -76,18 +88,30 @@ class TestIntegrationTest(unittest.TestCase):
         )
 
         # Add single string
-        client.add_documents("test", doc_id=None)
+        client.add_documents("test_graph", "test", doc_id=None)
 
         # Add multiple strings
-        client.add_documents(["one", "two", "three"], doc_id=None)
+        client.add_documents("test_graph", ["one", "two", "three"], doc_id=None)
 
         # Add mixed
-        client.add_documents(["string", Document("document string", {}, id=None)], doc_id=None)
+        client.add_documents("test_graph", ["string", Document("document string", {}, id=None)], doc_id=None)
 
     def test_get_content(self):
         namespace_name = "test.getcontent"
         client = IndexifyClient.create_namespace(namespace=namespace_name)
+        
+        extraction_graph_spec = """
+        name: 'test_get_content_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: 'content_policy'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
+
         client.add_documents(
+            "test_get_content_graph",
             [Document(text="one", labels={"l1": "test"}, id=None), "two", "three"]
         )
         content = client.get_extracted_content()
@@ -103,7 +127,19 @@ class TestIntegrationTest(unittest.TestCase):
     def test_download_content(self):
         namespace_name = "test.downloadcontent"
         client = IndexifyClient.create_namespace(namespace=namespace_name)
+        
+        extraction_graph_spec = """
+        name: 'test_download_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: 'download_policy'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
+
         client.add_documents(
+            "test_download_graph",
             ["test download"],
             doc_id=None
         )
@@ -120,13 +156,18 @@ class TestIntegrationTest(unittest.TestCase):
         client = IndexifyClient.create_namespace(namespace_name)
         source = "test"
 
-        client.add_extraction_policy(
-            extractor="tensorlake/minilm-l6",
-            name=extractor_name,
-            labels_eq=f"source:{source}",
-        )
+        extraction_graph_spec = f"""
+        name: '{extractor_name}_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: '{extractor_name}'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        client.create_extraction_graph(extraction_graph)
 
         client.add_documents(
+            f"{extractor_name}_graph",
             [
                 Document(
                     text="Indexify is also a retrieval service for LLM agents!",
@@ -217,7 +258,18 @@ class TestIntegrationTest(unittest.TestCase):
 
     def test_upload_file(self):
         test_file_path = os.path.join(os.path.dirname(__file__), "files", "test.txt")
-        self.client.upload_file(test_file_path)
+        
+        extraction_graph_spec = """
+        name: 'upload_file_graph'
+        extraction_policies:
+          - extractor: 'tensorlake/minilm-l6'
+            name: 'upload_policy'
+        """
+
+        extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
+        self.client.create_extraction_graph(extraction_graph)
+        
+        self.client.upload_file("upload_file_graph", test_file_path)
 
     def test_ingest_remote_url(self):
         url = "https://gif-search.diptanu-6d5.workers.dev/OlG-5EjOENZLvlxHcXXmT.gif"
