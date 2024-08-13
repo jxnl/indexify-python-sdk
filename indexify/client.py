@@ -583,11 +583,10 @@ class IndexifyClient:
         labels: dict = {},
     ) -> str:
         """
-        Upload a file or content.
+        Upload a file from a path or the bytes.
 
         Args:
-            - path (Union[str, Content, ContentMetadata]): relative path to the file to be uploaded, 
-            a Content object, or a ContentMetadata object
+            - path (Union[str, bytes]): relative path to the file to be uploaded, or the bytes of the file
             - labels (dict): labels to be associated with the file
         """
         if isinstance(extraction_graphs, str):
