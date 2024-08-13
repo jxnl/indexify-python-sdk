@@ -9,10 +9,12 @@ from .client import (
 from .data import ContentMetadata, Content, Feature
 from .extractor import Extractor, extractor, EmbeddingSchema
 from .settings import DEFAULT_SERVICE_URL
+from . import data_loaders
 
 __all__ = [
     "ContentMetadata",
     "Content",
+    "data_loaders",
     "Feature",
     "Extractor",
     "extractor",

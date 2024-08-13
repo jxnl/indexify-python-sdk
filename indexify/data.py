@@ -72,7 +72,7 @@ class ContentMetadata(BaseModel):
 
     @classmethod
     def from_dict(cls, json: Dict):
-        return Content(
+        return cls(
             id=json["id"],
             parent_id=json["parent_id"],
             labels=json["labels"],
