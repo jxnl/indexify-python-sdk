@@ -4,10 +4,10 @@ import os
 
 
 class LocalDirectoryLoader(DataLoader):
-    def __init__(self, directory: str, file_extensions: Optional[List[str]] = None):
+    def __init__(self, directory: str, file_extensions: Optional[List[str]] = None, state: dict ={}):   
         self.directory = directory
         self.file_extensions = file_extensions
-        self.processed_files = set()
+        self.processed_files = set(state.get("processed_files", []))
 
     def load(self) -> List[FileMetadata]:
         file_metadata_list = []

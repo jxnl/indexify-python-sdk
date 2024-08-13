@@ -52,4 +52,4 @@ class DataLoader(ABC):
     def state(self) -> dict:
         pass
 
-from .local_directory_loader import SimpleDirectoryLoader
+from .local_directory_loader import LocalDirectoryLoader
