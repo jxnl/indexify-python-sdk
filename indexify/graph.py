@@ -2,7 +2,9 @@ from indexify import Content, extractor
 from indexify.extractor import Extractor
 
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Self
+
+import itertools
 
 
 @extractor(description="id function")
@@ -28,20 +30,49 @@ class Graph:
 
         self._start_node = None
 
-    def node(self, name: str, closure: Extractor, params: Any = None) -> None:
-        if name in self.nodes:
-            raise Exception(f"Cannot insert node, node with name: `{name}` already exists")
+    def _node(self, extractor: Extractor, params: Any = None) -> Self:
+        name = extractor._extractor_name
 
-        self.nodes[name] = closure
-        self.params[name] = params
+        # if you've already inserted a node just ignore the new insertion.
+        if name in self.nodes:
+            return
+
+        self.nodes[name] = extractor
+        self.params[name] = extractor.__dict__.get('params', None)
 
         # assign each node a rank of 1 to init the graph
         self._topo_counter[name] = 1
 
-    def edge(self, from_node: str, to_node: str, prefilter_predicates: Optional[str] = None) -> None:
-        self.edges[from_node].append((to_node, prefilter_predicates))
+        return self
 
-        self._topo_counter[to_node] += 1
+    def step(self,
+             from_node: extractor,
+             to_node: extractor,
+             prefilter_predicates: Optional[str] = None
+    ) -> Self:
+
+        self._node(from_node)
+        self._node(to_node)
+
+        from_node_name = from_node._extractor_name
+        to_node_name = to_node._extractor_name
+
+        self.edges[from_node_name].append((to_node_name, prefilter_predicates))
+
+        self._topo_counter[to_node_name] += 1
+
+        return self
+
+    """
+    Connect nodes as a fan out from one `from_node` to multiple `to_nodes` and respective `prefilter_predicates`.
+    Note: The user has to match the sizes of the lists to make sure they line up otherwise a None is used as a default.
+    """
+    def steps(self, from_node: extractor, to_nodes: List[extractor], prefilter_predicates: List[str] = []) -> Self:
+        print(f'{to_nodes}, {prefilter_predicates}, {prefilter_predicates}')
+        for t_n, p in itertools.zip_longest(to_nodes, prefilter_predicates, fillvalue=None):
+            self.step(from_node=from_node, to_node=t_n, prefilter_predicates=p)
+
+        return self
 
     def _assign_start_node(self):
         # this method should be called before a graph can be run

@@ -115,6 +115,8 @@ def extractor(
 
             return DecoratedFn
 
+        wrapper._extractor_name = fn.__name__
+
         return wrapper
 
     return construct
