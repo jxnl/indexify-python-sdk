@@ -22,8 +22,8 @@ class Extractor(ABC):
     input_mime_types = ["text/plain"]
 
     def extract(
-        self, content: Content, params: Type[BaseModel] = None
-    ) -> List[Union[Feature, Content]]:
+        self, input: Type[BaseModel], params: Type[BaseModel] = None
+    ) -> List[Union[Feature, Type[BaseModel]]]:
         """
         Extracts information from the content. Returns a list of features to add
         to the content.
@@ -33,8 +33,8 @@ class Extractor(ABC):
         pass
 
     def extract_batch(
-        self, content_list: List[Content], params: List[Type[BaseModel]] = None
-    ) -> List[List[Union[Feature, Content]]]:
+        self, input_list: List[Type[BaseModel]], params: List[Type[BaseModel]] = None
+    ) -> List[List[Union[Feature, Type[BaseModel]]]]:
         """
         Extracts information from the content. Returns a list of features to add
         to the content.
@@ -99,13 +99,13 @@ def extractor(
 
             class DecoratedFn(Extractor):
                 @classmethod
-                def extract(cls, content: Content, params: hint) -> List[Content]:  # type: ignore
+                def extract(cls, input: Type[BaseModel], params: Type[BaseModel]=None) -> List[Content]:  # type: ignore
                     # TODO we can force all the functions to take in a parms object
                     # or check if someone adds a params
                     if params is None:
-                        return fn(content)
+                        return fn(input)
                     else:
-                        return fn(content, params)
+                        return fn(input, params)
 
                 def sample_input(self) -> Content:
                     return sample_content() if sample_content else self.sample_text()
