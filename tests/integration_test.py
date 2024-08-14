@@ -96,7 +96,7 @@ class TestIntegrationTest(unittest.TestCase):
         extraction_graph_spec = """
         name: 'test_get_content_graph'
         extraction_policies:
-          - extractor: 'tensorlake/minilm-l6'
+          - extractor: 'tensorlake/chunk-extractor'
             name: 'content_policy'
         """
 
@@ -107,8 +107,10 @@ class TestIntegrationTest(unittest.TestCase):
             "test_get_content_graph",
             [Document(text="one", labels={"l1": "test"}, id=None), "two", "three"]
         )
+        client.wait_for_extraction(content_id)
+
         content = client.get_extracted_content(
-            ingested_content_id=content_id,
+            ingested_content_id=content_id[0],
             graph_name="test_get_content_graph",
             policy_name="content_policy"
         )
@@ -130,7 +132,7 @@ class TestIntegrationTest(unittest.TestCase):
         extraction_graph_spec = """
         name: 'test_download_graph'
         extraction_policies:
-          - extractor: 'tensorlake/minilm-l6'
+          - extractor: 'tensorlake/chunk-extractor'
             name: 'download_policy'
         """
 
@@ -142,8 +144,10 @@ class TestIntegrationTest(unittest.TestCase):
             ["test download"],
             doc_id=None
         )
+        client.wait_for_extraction(content_id)
+
         content = client.get_extracted_content(
-            ingested_content_id=content_id,
+            ingested_content_id=content_id[0],
             graph_name="test_download_graph",
             policy_name="download_policy")
         assert len(content) == 1
