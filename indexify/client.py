@@ -549,7 +549,7 @@ class IndexifyClient:
         labels_filter: List[str] = [],
         start_id: str = "",
         limit: int = 10,
-    ) -> List[Content]:
+    ) -> List[ContentMetadata]:
         """
         List content in the current namespace.
 
@@ -572,7 +572,7 @@ class IndexifyClient:
         content_list = response.json()["content_list"]
         content = []
         for item in content_list:
-            content.append(Content.from_dict(item))
+            content.append(ContentMetadata.from_dict(item))
         return content
 
     def upload_file(
