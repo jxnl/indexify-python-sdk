@@ -116,9 +116,8 @@ class TestIntegrationTest(unittest.TestCase):
         )
         assert len(content) > 0 # Expecting at least one chunk
 
-        # validate content_url
         for c in content:
-            assert c.get("content_url") is not None
+            assert c.get("id") is not None
 
         # parent doesn't exist
         content = client.get_extracted_content(ingested_content_id="idontexist",
@@ -185,7 +184,7 @@ class TestIntegrationTest(unittest.TestCase):
             ]
         )
         time.sleep(10)
-        results = client.search_index(f"{extractor_name}.embedding", "LLM", 1)
+        results = client.search_index(f"{extractor_name}_graph.{extractor_name}.embedding", "LLM", 1)
         assert len(results) == 1
 
     def test_list_extractors(self):
