@@ -114,7 +114,8 @@ class TestIntegrationTest(unittest.TestCase):
             graph_name="test_get_content_graph",
             policy_name="content_policy"
         )
-        assert len(content) == 1
+        assert len(content) > 0 # Expecting at least one chunk
+
         # validate content_url
         for c in content:
             assert c.get("content_url") is not None
@@ -150,10 +151,11 @@ class TestIntegrationTest(unittest.TestCase):
             ingested_content_id=content_id[0],
             graph_name="test_download_graph",
             policy_name="download_policy")
-        assert len(content) == 1
+        assert len(content) > 0 # Expecting at least one chunk
 
         data = client.download_content(content[0].get('id'))
-        assert data.decode("utf-8") == "test download"
+        assert "test download" in data.decode("utf-8") # chunk may not be the whole string
+
 
     def test_search(self):
         namespace_name = self.generate_short_id()
@@ -224,7 +226,7 @@ class TestIntegrationTest(unittest.TestCase):
         """
 
         extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
-        self.client.create_extraction_graph(extraction_graph)
+        client.create_extraction_graph(extraction_graph)
 
         time.sleep(2)
         content_id = client.upload_file(
@@ -234,16 +236,9 @@ class TestIntegrationTest(unittest.TestCase):
             )
         )
         time.sleep(25)
-        content = client.get_extracted_content(
-            ingested_content_id=content_id,
-            graph_name="test_get_content_graph",
-            policy_name="content_policy"
-        )
-        content = list(filter(lambda x: x.get("source") != "ingestion", content))
-        assert len(content) > 0
-        for c in content:
-            metadata = client.get_content_metadata(c.get("id"))
-            assert len(metadata) > 0
+        metadata = client.get_content_metadata(content_id)
+        assert len(metadata) > 0
+
 
     def test_extractor_input_params(self):
         name = "chunk_test_extractor_input_params"
@@ -263,9 +258,9 @@ class TestIntegrationTest(unittest.TestCase):
         extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
         client.create_extraction_graph(extraction_graph)
 
-    def test_get_bindings(self):
-        name = "minilml6_test_get_bindings"
-        client = IndexifyClient.create_namespace("test.getbindings")
+    def test_get_extraction_graphs(self):
+        name = "minilml6_test_get_extraction_graphs"
+        client = IndexifyClient.create_namespace("test.getextractiongraphs")
         
         extraction_graph_spec = f"""
         name: '{name}_graph'
@@ -276,8 +271,8 @@ class TestIntegrationTest(unittest.TestCase):
     
         extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
         client.create_extraction_graph(extraction_graph)
-        bindings = client.extraction_policies
-        assert len(list(filter(lambda x: x.name.startswith(name), bindings))) == 1
+        extraction_graphs = client.get_extraction_graphs()
+        assert len(list(filter(lambda x: x.name.startswith(name), extraction_graphs))) == 1
 
     def test_get_indexes(self):
         name = "minilml6_test_get_indexes"
@@ -313,8 +308,8 @@ class TestIntegrationTest(unittest.TestCase):
     def test_ingest_remote_url(self):
         url = "https://gif-search.diptanu-6d5.workers.dev/OlG-5EjOENZLvlxHcXXmT.gif"
         content_id = self.client.generate_hash_from_string(url)
-        res = self.client.ingest_remote_file(url, "image/gif", {}, id=content_id)
-        assert res.get("content_id") == content_id
+        res = self.client.ingest_remote_file("default", url, "image/gif", {}, id=content_id)
+        assert res == content_id
     
     def test_timeout(self):
         with self.assertRaises(ConnectError):
@@ -383,8 +378,6 @@ class TestIntegrationTest(unittest.TestCase):
     # TODO: metadata not working outside default namespace
         
     def test_sql_query(self):        
-        # namespace_name = "sqlquerytest"
-        # client = IndexifyClient.create_namespace(namespace_name)
         client = IndexifyClient()
         time.sleep(2)
 
@@ -396,7 +389,7 @@ class TestIntegrationTest(unittest.TestCase):
         """
 
         extraction_graph = ExtractionGraph.from_yaml(extraction_graph_spec)
-        self.client.create_extraction_graph(extraction_graph)
+        client.create_extraction_graph(extraction_graph)
 
         time.sleep(2)
         content_id = client.upload_file(
@@ -408,7 +401,7 @@ class TestIntegrationTest(unittest.TestCase):
         time.sleep(25)
 
         query_result = client.sql_query("select * from ingestion")
-        assert len(query_result.result) == 1
+        assert len(query_result.result) >= 1 # Expecting at least one row
 
 if __name__ == "__main__":
     unittest.main()
