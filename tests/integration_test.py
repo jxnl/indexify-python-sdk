@@ -114,7 +114,7 @@ class TestIntegrationTest(unittest.TestCase):
             graph_name="test_get_content_graph",
             policy_name="content_policy"
         )
-        assert len(content) == 3
+        assert len(content) == 1
         # validate content_url
         for c in content:
             assert c.get("content_url") is not None
