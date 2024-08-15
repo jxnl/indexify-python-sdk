@@ -703,7 +703,7 @@ class IndexifyClient:
         extraction_graph: str,
         url: str,
         mime_type: str,
-        labels: Dict[str, str],
+        labels: Dict[str, str]={},
         id=None,
     ):
         req = {
