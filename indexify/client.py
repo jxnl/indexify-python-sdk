@@ -5,11 +5,11 @@ import hashlib
 import json
 from collections import namedtuple
 from .settings import DEFAULT_SERVICE_URL, DEFAULT_SERVICE_URL_HTTPS
-from .extractor import Extractor
+from .extractor import ExtractorMetadata
 from .extraction_policy import ExtractionGraph
 from .utils import json_set_default
 from .error import Error
-from .data import Content, ContentMetadata
+from .data import ContentMetadata
 from .data_loaders import DataLoader
 from indexify.exceptions import ApiException
 from dataclasses import dataclass
@@ -326,7 +326,7 @@ class IndexifyClient:
         response = self.get(f"namespaces/{self.namespace}/indexes")
         return response.json()["indexes"]
 
-    def extractors(self) -> List[Extractor]:
+    def extractors(self) -> List[ExtractorMetadata]:
         """
         Get a list of all extractors.
 
@@ -337,7 +337,8 @@ class IndexifyClient:
         extractors_dict = response.json()["extractors"]
         extractors = []
         for ed in extractors_dict:
-            extractors.append(Extractor.from_dict(ed))
+            print(ed)
+            extractors.append(ExtractorMetadata.model_validate(ed))
         return extractors
 
     def get_extraction_graphs(self) -> List[ExtractionGraph]:

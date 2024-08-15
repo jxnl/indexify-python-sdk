@@ -2,7 +2,8 @@ from indexify import Content, extractor
 from indexify.extractor import Extractor
 
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Self
+from typing import Any, Callable, Dict, List, Optional, Self, Type
+from pydantic import BaseModel
 
 import itertools
 
@@ -12,7 +13,7 @@ def _id(content: Content) -> List[Content]:
     return [content]
 
 class Graph:
-    def __init__(self, name: str):
+    def __init__(self, name: str, input: Type[BaseModel], start_node: Extractor):
         # TODO check for cycles
         self.name = name
 
@@ -29,6 +30,7 @@ class Graph:
         self._topo_counter = defaultdict(int)
 
         self._start_node = None
+        self._input=input
 
     def _node(self, extractor: Extractor, params: Any = None) -> Self:
         name = extractor._extractor_name
@@ -45,7 +47,7 @@ class Graph:
 
         return self
 
-    def step(self,
+    def add_edge(self,
              from_node: extractor,
              to_node: extractor,
              prefilter_predicates: Optional[str] = None

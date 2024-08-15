@@ -1,12 +1,20 @@
 from typing import Union, Optional, List, Type, Tuple, Callable, get_type_hints, Dict
 import inspect
-from pydantic import BaseModel
+from pydantic import BaseModel, Json
 from abc import ABC, abstractmethod
 from .data import Content, Feature
 import json
 
 class EmbeddingSchema(BaseModel):
     dimension: int
+
+
+class ExtractorMetadata(BaseModel):
+    name: str
+    description: str
+    input_mime_types: List[str]
+    # Make this a dynamic model since its a json schema
+    input_params: Optional[Dict]
 
 class Extractor(ABC):
     name: str = ""
