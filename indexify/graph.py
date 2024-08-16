@@ -1,3 +1,5 @@
+import json
+
 from .extractor_sdk import Content, extractor, Extractor
 
 from collections import defaultdict
@@ -35,7 +37,7 @@ class Graph:
         self._input = input
 
     def _node(self, extractor: Extractor, params: Any = None) ->  'Graph':
-        name = extractor._extractor_name
+        name = extractor.name
 
         # if you've already inserted a node just ignore the new insertion.
         if name in self.nodes:
@@ -59,8 +61,8 @@ class Graph:
         self._node(from_node)
         self._node(to_node)
 
-        from_node_name = from_node._extractor_name
-        to_node_name = to_node._extractor_name
+        from_node_name = from_node.name
+        to_node_name = to_node.name
 
         self.edges[from_node_name].append((to_node_name, prefilter_predicates))
 
@@ -86,6 +88,15 @@ class Graph:
             self.step(from_node=from_node, to_node=t_n, prefilter_predicates=p)
 
         return self
+
+    def add_param(self, node: extractor, params: Dict[str, Any]):
+        try:
+            # check if the params can be serialized since the server needs this
+            json.dumps(params)
+        except Exception:
+            raise Exception(f"For node {node.name}, cannot serialize params as json.")
+
+        self.params[node.name] = params
 
     def _assign_start_node(self):
         # this method should be called before a graph can be run

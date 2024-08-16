@@ -201,7 +201,7 @@ def get_tables(pdf_path):
         crop_padding = 10
 
         tables_crops = objects_to_crops(image, tokens, objects, detection_class_thresholds, padding=0)
-        
+
         for table_index, table_crop in enumerate(tables_crops):
             cropped_table = table_crop['image'].convert("RGB")
 
@@ -225,6 +225,7 @@ def get_tables(pdf_path):
                 cell_coordinates = get_cell_coordinates_by_row(cells)
 
                 data = apply_ocr(cell_coordinates, cropped_table)
-                data_dict[f"{index+1}.{table_index+1}"] = data
-    
+                num_index = index+1 + table_index+1
+                data_dict[num_index] = data
+
     return data_dict
