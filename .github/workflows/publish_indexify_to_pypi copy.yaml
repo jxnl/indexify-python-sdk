@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish Langchain module to PyPI
 
 on:
   workflow_dispatch:
