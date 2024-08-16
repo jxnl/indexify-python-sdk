@@ -1,9 +1,10 @@
 from fasterwhisper import FasterWhisper
 from asr_extractor import ASRExtractor, ASRExtractorConfig
-from .extractor_sdk.data import Feature, extractor
+from indexify.extractor_sdk.data import Feature
+from indexify.extractor_sdk.extractor import extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
-from indexify.data import BaseData
+from indexify.extractor_sdk.data import BaseData
 
 from typing import List
 from pydantic import BaseModel, Field

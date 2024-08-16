@@ -1,6 +1,5 @@
-from .extractor_sdk import Feature
-from .extractor_sdk.data import BaseData
-from indexify import Content, Extractor
+from indexify.extractor_sdk.data import BaseData, Feature
+from indexify.extractor_sdk.extractor import Extractor
 
 from collections import defaultdict
 from typing import Any, Callable, Dict, Optional, Type
@@ -77,6 +76,6 @@ class LocalRunner:
 
         return all(bools)
 
-    def get_result(self, node: Extractor) -> Content:
+    def get_result(self, node: Extractor) -> Any:
         node_name = node._extractor_name
         return self.results[node_name]
