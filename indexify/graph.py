@@ -1,5 +1,5 @@
 from indexify import Content, extractor
-from indexify.extractor import Extractor
+from indexify.extractor_sdk.extractor import Extractor
 
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Optional, Self, Type
