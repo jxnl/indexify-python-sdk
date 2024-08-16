@@ -1,9 +1,8 @@
-from fasterwhisper import FasterWhisper
-from .asr_extractor import ASRExtractor, ASRExtractorConfig
-from indexify import Content, Feature, extractor
+from indexify.extractor_sdk.data import Feature
+from indexify.extractor_sdk.extractor import extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
-from indexify.data import UploadFile, BaseData
+from indexify.extractor_sdk.data import BaseData
 
 from typing import List
 from pydantic import BaseModel, Field
@@ -42,8 +41,12 @@ class DiarizedSpeechWithClassification(BaseData):
     classification: SpeechClassification
 
 
+class UploadFile(BaseModel):
+    data: bytes
+
+
 @extractor(description="Get yt video")
-def get_yt_video_and_extract_audio(url: YoutubeURL) -> UploadFile:
+def get_yt_video_and_extract_audio(url: YoutubeURL) -> List[UploadFile]:
     # TODO download video from yt but let's hardcode it for now.
     file_loc = "./indexify_example_data/Mock Interview Preparation： Common Questions with Feedback! [R_dxlajqA4s].mp4"
     output_loc = "./indexify_example_data/audio.mp3"
@@ -53,8 +56,8 @@ def get_yt_video_and_extract_audio(url: YoutubeURL) -> UploadFile:
     # except CalledProcessError as e:
     #    raise e
     #    pass
-    f = open("requirements.txt", "ro")
-    return [UploadFile(file=f)]
+    f = open("requirements.txt", "br")
+    return [UploadFile(data=f.read())]
 
 
 # kind of annoying to not know the types of the output being generated.
@@ -117,7 +120,10 @@ def create_graph():
 
 
 if __name__ == "__main__":
-    g = create_graph
+    g = create_graph()
 
     runner = LocalRunner()
-    runner.run(g, input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))
+    runner.run(g, wf_input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))
+
+    print(f"--- wf output: {runner.get_result(classify_text_feature)}")
+    print(f"--- wf output: {runner.get_result(summarize_job_interview)}")

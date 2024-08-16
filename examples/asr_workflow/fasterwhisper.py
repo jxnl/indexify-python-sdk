@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import List
-from indexify_extractor_sdk import Extractor, Content
+from indexify.extractor_sdk import Extractor, Content
 import json
 import io
 from faster_whisper import WhisperModel

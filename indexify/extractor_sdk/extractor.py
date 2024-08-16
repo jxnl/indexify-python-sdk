@@ -2,7 +2,7 @@ from typing import Union, Optional, List, Type, Tuple, Callable, get_type_hints,
 import inspect
 from pydantic import BaseModel, Json
 from abc import ABC, abstractmethod
-from .data import Content, Feature
+from .data import BaseData, Content, Feature
 import json
 import os
 import requests
@@ -206,13 +206,13 @@ def extractor(
 
             class DecoratedFn(Extractor):
                 @classmethod
-                def extract(cls, input: Type[BaseModel], params: Type[BaseModel] = None) -> List[Content]:  # type: ignore
+                def extract(cls, _input: Type[BaseData], params: Type[BaseModel]=None) -> List[Union[Type[BaseModel], Type[Feature]]]:  # type: ignore
                     # TODO we can force all the functions to take in a parms object
                     # or check if someone adds a params
                     if params is None:
-                        return fn(input)
+                        return fn(_input)
                     else:
-                        return fn(input, params)
+                        return fn(_input, params)
 
                 def sample_input(self) -> Content:
                     return sample_content() if sample_content else self.sample_text()

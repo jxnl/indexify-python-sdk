@@ -14,26 +14,13 @@ from typing_extensions import Annotated, Doc
 
 
 class BaseData(BaseModel):
-    meta: Mapping[str, Type[BaseModel]]
+    meta: Mapping[str, Type[BaseModel]] = {}
 
     def get_features(self) -> List[Type[BaseModel]]:
-        return []
-
+        return self.meta
+    
     def get_feature(self, name: str) -> Optional[Type[BaseModel]]:
         return self.meta.get(name)
-
-
-# Copied from FastAPI - https://github.com/fastapi/fastapi/blob/75705617a66300847436e39ba703af1b8d109963/fastapi/datastructures.py#L30
-class UploadFile(BaseModel):
-    """
-    A file uploaded in a request.
-    """
-
-    filename: Annotated[Optional[str], Doc("The original file name.")]
-    size: Annotated[Optional[int], Doc("The size of the file in bytes.")]
-    content_type: Annotated[
-        Optional[str], Doc("The content type of the request, from the headers.")
-    ]
 
 
 class Feature(BaseModel):
