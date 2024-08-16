@@ -1,10 +1,8 @@
 from indexify.extractor_sdk.data import BaseData, Feature
-from indexify.extractor_sdk.extractor import Extractor
+from indexify.extractor_sdk.extractor import extractor
 
 from collections import defaultdict
-from typing import Any, Callable, Dict, Optional, Type
-
-import json
+from typing import Any, Callable, Dict, Optional
 
 
 class LocalRunner:
@@ -76,6 +74,6 @@ class LocalRunner:
 
         return all(bools)
 
-    def get_result(self, node: Extractor) -> Any:
+    def get_result(self, node: extractor) -> Any:
         node_name = node._extractor_name
         return self.results[node_name]

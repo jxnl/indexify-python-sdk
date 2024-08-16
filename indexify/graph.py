@@ -13,7 +13,7 @@ def _id(content: Content) -> List[Content]:
 
 
 class Graph:
-    def __init__(self, name: str, input: Type[BaseModel], start_node: Extractor):
+    def __init__(self, name: str, input: Type[BaseModel], start_node: extractor):
         # TODO check for cycles
         self.name = name
 
