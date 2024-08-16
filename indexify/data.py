@@ -7,10 +7,10 @@ from typing_extensions import Annotated, Doc
 
 
 class BaseData(BaseModel):
-    meta: Mapping[str, Type[BaseModel]]
+    meta: Mapping[str, Type[BaseModel]] = {}
 
     def get_features(self) -> List[Type[BaseModel]]:
-        return []
+        return self.meta
     
     def get_feature(self, name: str) -> Optional[Type[BaseModel]]:
         return self.meta.get(name)

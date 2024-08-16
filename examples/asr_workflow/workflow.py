@@ -1,5 +1,5 @@
 from fasterwhisper import FasterWhisper
-from .asr_extractor import ASRExtractor, ASRExtractorConfig
+from asr_extractor import ASRExtractor, ASRExtractorConfig
 from indexify import Content, Feature, extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
@@ -36,7 +36,7 @@ class DiarizedSpeechWithClassification(BaseData):
     classification: SpeechClassification
 
 @extractor(description="Get yt video")
-def get_yt_video_and_extract_audio(url: YoutubeURL) -> UploadFile:
+def get_yt_video_and_extract_audio(url: YoutubeURL) -> List[UploadFile]:
     # TODO download video from yt but let's hardcode it for now.
     file_loc = './indexify_example_data/Mock Interview Preparation： Common Questions with Feedback! [R_dxlajqA4s].mp4'
     output_loc = './indexify_example_data/audio.mp3'
@@ -46,7 +46,7 @@ def get_yt_video_and_extract_audio(url: YoutubeURL) -> UploadFile:
     #except CalledProcessError as e:
     #    raise e
     #    pass
-    f=open("requirements.txt", "ro")
+    f = open("audio.mp3")
     return [UploadFile(file=f)]
 
 # kind of annoying to not know the types of the output being generated.
@@ -58,7 +58,10 @@ def diarize_speakers(file: UploadFile) -> DiarizedSpeech:
     # return results
 
     # hardcoded because cpu diarizer isn't working
-    return DiarizedSpeech(segments=[DiarizedSpeechSegment(speaker="Speaker 1", text="Hello, my name is John Doe", start_ts=0, end_ts=5), DiarizedSpeechSegment(speaker="Speaker 2", text="Hello, my name is Jane Doe", start_ts=5, end_ts=10)])
+    return [DiarizedSpeech(segments=[
+            DiarizedSpeechSegment(speaker="Speaker 1", text="Hello, my name is John Doe", start_ts=0, end_ts=5),
+            DiarizedSpeechSegment(speaker="Speaker 2", text="Hello, my name is Jane Doe", start_ts=5, end_ts=10)
+    ])]
 
 @extractor(description="Classify text into job interview or sales call")
 def classify_text_feature(speech: DiarizedSpeech) -> List[Feature]:
@@ -82,7 +85,10 @@ def create_graph():
     return g
 
 if __name__ == "__main__":
-    g = create_graph
+    g = create_graph()
 
     runner = LocalRunner()
-    runner.run(g, input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))
+    runner.run(g, wf_input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))
+
+    print(f"--- wf output: {runner.get_result(classify_text_feature)}")
+    print(f"--- wf output: {runner.get_result(summarize_job_interview)}")
