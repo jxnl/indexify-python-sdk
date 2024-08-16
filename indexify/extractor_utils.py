@@ -3,8 +3,8 @@ import httpx
 from typing import List
 from .data import Content, Feature
 
-class SampleExtractorData:
 
+class SampleExtractorData:
     def _download_file(self, url, filename):
         if os.path.exists(filename):
             # file exists skip

@@ -6,9 +6,12 @@ from typing import Any, Callable, Dict, Optional, Type
 
 import json
 
+
 class LocalRunner:
     def __init__(self):
-        self.results: Dict[str, Any] = defaultdict(list) # TODO should the Any be Content?
+        self.results: Dict[str, Any] = defaultdict(
+            list
+        )  # TODO should the Any be Content?
 
     def run(self, g, wf_input: BaseData):
         g._assign_start_node()
@@ -26,6 +29,9 @@ class LocalRunner:
         params = g.params.get(node_name, None)
 
         res = extractor_construct().extract(_input=_input, params=params)
+        if not isinstance(res, list):
+            res = [res]
+
 
         res_data = [i for i in res if not isinstance(i, Feature)]
         res_features = [i for i in res if isinstance(i, Feature)]
@@ -56,7 +62,7 @@ class LocalRunner:
         if prefilter_predicate is None:
             return False
 
-        atoms = prefilter_predicate.split('and')
+        atoms = prefilter_predicate.split("and")
         if len(atoms) == 0:
             return False
 

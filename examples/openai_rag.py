@@ -1,15 +1,20 @@
-from indexify import IndexifyClient, ExtractionGraph 
+from indexify import IndexifyClient, ExtractionGraph
 
 
 def get_context(question: str, index: str, top_k=3):
     results = client.search_index(name=index, query=question, top_k=top_k)
     context = ""
     for result in results:
-        context = context + f"content id: {result['content_id']} \n\n passage: {result['text']}\n"
+        context = (
+            context
+            + f"content id: {result['content_id']} \n\n passage: {result['text']}\n"
+        )
     return context
+
 
 def create_prompt(question, context):
     return f"Answer the question, based on the context.\n question: {question} \n context: {context}"
+
 
 # Initialize Indexify Client
 client = IndexifyClient()
@@ -33,13 +38,15 @@ client.create_extraction_graph(extraction_graph)
 
 # Query Wikipedia
 from langchain_community.document_loaders import WikipediaLoader
+
 docs = WikipediaLoader(query="Kevin Durant", load_max_docs=1).load()
 for doc in docs:
-    client.add_documents("nbakb", doc.page_content)   
+    client.add_documents("nbakb", doc.page_content)
 
 
 # Perform Rag
 from openai import OpenAI
+
 client_openai = OpenAI()
 
 question = "When and where did Kevin Durant win NBA championships?"

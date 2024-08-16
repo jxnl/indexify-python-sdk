@@ -1,8 +1,16 @@
-from typing import Any, List, Optional, Literal, Dict, BinaryIO, Iterable, Callable, Type, cast, Mapping
+from typing import (
+    Any,
+    List,
+    Optional,
+    Literal,
+    Dict,
+    BinaryIO,
+    Type,
+    cast,
+    Mapping,
+)
 from pydantic import BaseModel, Json, Field
 import json
-from starlette.datastructures import UploadFile as StarletteUploadFile
-from starlette.datastructures import Headers as Headers  # noqa: F401
 from typing_extensions import Annotated, Doc
 
 
@@ -16,105 +24,6 @@ class BaseData(BaseModel):
         return self.meta.get(name)
 
 
-# Copied from FastAPI - https://github.com/fastapi/fastapi/blob/75705617a66300847436e39ba703af1b8d109963/fastapi/datastructures.py#L30
-class UploadFile(StarletteUploadFile):
-    """
-    A file uploaded in a request.
-    """
-
-    file: Annotated[
-        BinaryIO,
-        Doc("The standard Python file object (non-async)."),
-    ]
-    filename: Annotated[Optional[str], Doc("The original file name.")]
-    size: Annotated[Optional[int], Doc("The size of the file in bytes.")]
-    headers: Annotated[Headers, Doc("The headers of the request.")]
-    content_type: Annotated[
-        Optional[str], Doc("The content type of the request, from the headers.")
-    ]
-
-    async def write(
-        self,
-        data: Annotated[
-            bytes,
-            Doc(
-                """
-                The bytes to write to the file.
-                """
-            ),
-        ],
-    ) -> None:
-        """
-        Write some bytes to the file.
-
-        You normally wouldn't use this from a file you read in a request.
-
-        To be awaitable, compatible with async, this is run in threadpool.
-        """
-        return await super().write(data)
-
-    async def read(
-        self,
-        size: Annotated[
-            int,
-            Doc(
-                """
-                The number of bytes to read from the file.
-                """
-            ),
-        ] = -1,
-    ) -> bytes:
-        """
-        Read some bytes from the file.
-
-        To be awaitable, compatible with async, this is run in threadpool.
-        """
-        return await super().read(size)
-
-    async def seek(
-        self,
-        offset: Annotated[
-            int,
-            Doc(
-                """
-                The position in bytes to seek to in the file.
-                """
-            ),
-        ],
-    ) -> None:
-        """
-        Move to a position in the file.
-
-        Any next read or write will be done from that position.
-
-        To be awaitable, compatible with async, this is run in threadpool.
-        """
-        return await super().seek(offset)
-
-    async def close(self) -> None:
-        """
-        Close the file.
-
-        To be awaitable, compatible with async, this is run in threadpool.
-        """
-        return await super().close()
-
-    @classmethod
-    def __get_validators__(cls: Type["UploadFile"]) -> Iterable[Callable[..., Any]]:
-        yield cls.validate
-
-    @classmethod
-    def validate(cls: Type["UploadFile"], v: Any) -> Any:
-        if not isinstance(v, StarletteUploadFile):
-            raise ValueError(f"Expected UploadFile, received: {type(v)}")
-        return v
-
-    @classmethod
-    def _validate(cls, __input_value: Any, _: Any) -> "UploadFile":
-        if not isinstance(__input_value, StarletteUploadFile):
-            raise ValueError(f"Expected UploadFile, received: {type(__input_value)}")
-        return cast(UploadFile, __input_value)
-
 class Feature(BaseModel):
     feature_type: Literal["embedding", "metadata"]
     name: str
@@ -126,7 +35,7 @@ class Feature(BaseModel):
         return cls(
             feature_type="embedding",
             name=name,
-            value={values: values, distance: distance},
+            value=json.dumps({"values": values, "distance": distance}),
             comment=None,
         )
 
@@ -138,7 +47,7 @@ class Feature(BaseModel):
 
 
 class Content(BaseModel):
-    id: str
+    id: Optional[str] = (None,)
     content_type: Optional[str]
     data: bytes
     features: List[Feature] = []
@@ -150,7 +59,7 @@ class Content(BaseModel):
         features: List[Feature] = [],
     ):
         return Content(
-            id="none-for-now",
+            id=None,
             content_type="text/plain",
             data=bytes(text, "utf-8"),
             features=features,

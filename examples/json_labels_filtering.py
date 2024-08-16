@@ -20,7 +20,7 @@ client.create_extraction_graph(extraction_graph)
 documents = [
     Document("I love apples", {"year": 2020, "fruit": "apple"}, None),
     Document("I love bananas", {"year": 2020, "fruit": "banana"}, None),
-    Document("I love deep fried banana", {"year": 2021, "fruit": "banana"}, None)
+    Document("I love deep fried banana", {"year": 2021, "fruit": "banana"}, None),
 ]
 
 content_ids = client.add_documents(graph_name, documents)
@@ -49,10 +49,7 @@ assert len(docs_2020) == 2
 
 # Search with multiple label filters.
 docs_2020_banana = client.search_index(
-    index_name,
-    "love",
-    3,
-    ["year=2020", "fruit=banana"]
+    index_name, "love", 3, ["year=2020", "fruit=banana"]
 )
 
 assert len(docs_2020_banana) == 1

@@ -14,11 +14,14 @@ from typing import Optional, Literal, List, Union
 
 logger = logging.getLogger(__name__)
 
+
 class ModelSettings(BaseSettings):
     asr_model: str = "tensorlake/distil-large-v3"
     diarization_model: Optional[str] = "tensorlake/speaker-diarization-3.1"
 
+
 model_settings = ModelSettings()
+
 
 class ASRExtractorConfig(BaseModel):
     task: Literal["transcribe", "translate"] = "transcribe"
@@ -29,6 +32,7 @@ class ASRExtractorConfig(BaseModel):
     min_speakers: Optional[int] = None
     max_speakers: Optional[int] = None
 
+
 class ASRExtractor(Extractor):
     name = "tensorlake/asrdiarization"
     description = "Powerful ASR + diarization + speculative decoding."
@@ -38,7 +42,9 @@ class ASRExtractor(Extractor):
     def __init__(self):
         super(ASRExtractor, self).__init__()
 
-        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
         torch_dtype = torch.float32 if device.type == "cpu" else torch.float16
         print(f"Using device: {device.type} data_type: {torch_dtype}")
         print(f"ASR model: {model_settings.asr_model}")
@@ -48,7 +54,7 @@ class ASRExtractor(Extractor):
                 "automatic-speech-recognition",
                 model=model_settings.asr_model,
                 torch_dtype=torch_dtype,
-                device=device
+                device=device,
             )
             self.diarization_pipeline = Pipeline.from_pretrained(
                 checkpoint_path=model_settings.diarization_model,
@@ -59,42 +65,50 @@ class ASRExtractor(Extractor):
             raise e
         print("ASR and diarization models loaded successfully.")
 
-    def extract(self, content: Content, params: ASRExtractorConfig) -> List[Union[Feature, Content]]:
-            generate_kwargs = {
-                "task": params.task,
-                "language": params.language,
-            }
+    def extract(
+        self, content: Content, params: ASRExtractorConfig
+    ) -> List[Union[Feature, Content]]:
+        generate_kwargs = {
+            "task": params.task,
+            "language": params.language,
+        }
 
+        try:
+            asr_outputs = self.asr_pipeline(
+                np.frombuffer(content.data, dtype=np.int8),
+                chunk_length_s=params.chunk_length_s,
+                generate_kwargs=generate_kwargs,
+                return_timestamps=True,
+            )
+        except RuntimeError as e:
+            logger.error(f"ASR inference error: {str(e)}")
+            raise RuntimeError(f"ASR inference error: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unknown error diring ASR inference: {str(e)}")
+            raise Exception(f"Unknown error during ASR inference: {str(e)}")
+
+        if self.diarization_pipeline:
             try:
-                asr_outputs = self.asr_pipeline(
-                    np.frombuffer(content.data, dtype=np.int8),
-                    chunk_length_s=params.chunk_length_s,
-                    generate_kwargs=generate_kwargs,
-                    return_timestamps=True,
+                transcript = diarize(
+                    self.diarization_pipeline,
+                    io.BytesIO(content.data).read(),
+                    params,
+                    asr_outputs,
                 )
             except RuntimeError as e:
-                logger.error(f"ASR inference error: {str(e)}")
-                raise RuntimeError(f"ASR inference error: {str(e)}")
+                logger.error(f"Diarization inference error: {str(e)}")
+                raise RuntimeError(f"Diarization inference error: {str(e)}")
             except Exception as e:
-                logger.error(f"Unknown error diring ASR inference: {str(e)}")
-                raise Exception(f"Unknown error during ASR inference: {str(e)}")
+                logger.error(f"Unknown error during diarization: {str(e)}")
+                raise Exception(f"Unknown error during diarization: {str(e)}")
+        else:
+            transcript = []
 
-            if self.diarization_pipeline:
-                try:
-                    transcript = diarize(self.diarization_pipeline, io.BytesIO(content.data).read(), params, asr_outputs)
-                except RuntimeError as e:
-                    logger.error(f"Diarization inference error: {str(e)}")
-                    raise RuntimeError(f"Diarization inference error: {str(e)}")
-                except Exception as e:
-                    logger.error(f"Unknown error during diarization: {str(e)}")
-                    raise Exception(f"Unknown error during diarization: {str(e)}")
-            else:
-                transcript = []
+        return [Content.from_json(transcript)]
 
-            return [Content.from_json(transcript)]
-    
     def sample_input(self) -> Content:
         return self.sample_mp3()
+
 
 if __name__ == "__main__":
     params = ASRExtractorConfig(batch_size=1)

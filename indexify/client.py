@@ -579,8 +579,8 @@ class IndexifyClient:
     def upload_file(
         self,
         extraction_graph: str,
-        path: str, 
-        file_bytes:bytes=None,
+        path: str,
+        file_bytes: bytes = None,
         id=None,
         labels: dict = {},
     ) -> str:
@@ -606,18 +606,20 @@ class IndexifyClient:
                 )
         else:
             response = self.post(
-                    f"namespaces/{self.namespace}/extraction_graphs/{extraction_graph}/extract",
-                    files={"file": (path, file_bytes)},
-                    data={"labels": json.dumps(labels)},
-                    params=params,
+                f"namespaces/{self.namespace}/extraction_graphs/{extraction_graph}/extract",
+                files={"file": (path, file_bytes)},
+                data={"labels": json.dumps(labels)},
+                params=params,
             )
             file_content = path
-        
+
         response_json = response.json()
         content_id = response_json["content_id"]
         return content_id
-    
-    def ingest_from_loader(self, loader: DataLoader, extraction_graph: str) -> List[str]:
+
+    def ingest_from_loader(
+        self, loader: DataLoader, extraction_graph: str
+    ) -> List[str]:
         """
         Loads content using the loader, uploads them to Indexify and returns the content ids.
         loader: DataLoader: The DataLoader object to use for loading content
@@ -626,9 +628,13 @@ class IndexifyClient:
         content_ids = []
         files = loader.load()
         for file_metadata in files:
-            labels={"file_name": file_metadata.path}
-            print(labels)
-            content_id = self.upload_file(extraction_graph, file_metadata.path, file_metadata.read_all_bytes(), labels=labels)
+            labels = {"file_name": file_metadata.path}
+            content_id = self.upload_file(
+                extraction_graph,
+                file_metadata.path,
+                loader.read_all_bytes(file_metadata),
+                labels=labels,
+            )
             content_ids.append(content_id)
         return content_ids
 
@@ -703,7 +709,7 @@ class IndexifyClient:
         extraction_graph: str,
         url: str,
         mime_type: str,
-        labels: Dict[str, str],
+        labels: Dict[str, str] = {},
         id=None,
     ):
         req = {

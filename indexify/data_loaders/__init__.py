@@ -6,6 +6,7 @@ import os
 import mimetypes
 import hashlib
 
+
 class FileMetadata(BaseModel):
     path: str
     file_size: int
@@ -38,10 +39,6 @@ class FileMetadata(BaseModel):
             updated_at=updated_at,
         )
 
-    def read_all_bytes(self) -> bytes:
-        with open(self.path, "rb") as f:
-            return f.read()
-
 
 class DataLoader(ABC):
     @abstractmethod
@@ -49,7 +46,13 @@ class DataLoader(ABC):
         pass
 
     @abstractmethod
+    def read_all_bytes(self, file_metadata: FileMetadata) -> bytes:
+        pass
+
+    @abstractmethod
     def state(self) -> dict:
         pass
 
+
 from .local_directory_loader import LocalDirectoryLoader
+from .url_loader import UrlLoader
