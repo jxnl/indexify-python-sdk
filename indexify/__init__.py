@@ -6,25 +6,16 @@ from .client import (
     generate_hash_from_string,
     generate_unique_hex_id,
 )
-from .data import ContentMetadata, Content, Feature
-from .extractor import Extractor, extractor, EmbeddingSchema, ExtractorMetadata
+from . import extractor_sdk
 from .settings import DEFAULT_SERVICE_URL
 from . import data_loaders
 
 __all__ = [
-    "ContentMetadata",
-    "Content",
     "data_loaders",
-    "Feature",
-    "Extractor",
-    "extractor",
-    "EmbeddingSchema",
-    "ExtractorMetadata",
-    "extractor",
     "Document",
+    "extractor_sdk",
     "IndexifyClient",
     "ExtractionGraph",
-    "ExtractionGraphBuilder" "ExtractionPolicy",
     "DEFAULT_SERVICE_URL",
     "generate_hash_from_string",
     "generate_unique_hex_id",

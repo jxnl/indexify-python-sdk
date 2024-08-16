@@ -4,7 +4,6 @@ from typing import (
     Optional,
     Literal,
     Dict,
-    BinaryIO,
     Type,
     cast,
     Mapping,
@@ -30,15 +29,12 @@ class UploadFile(BaseModel):
     A file uploaded in a request.
     """
 
-    file: Annotated[
-        BinaryIO,
-        Doc("The standard Python file object (non-async)."),
-    ]
     filename: Annotated[Optional[str], Doc("The original file name.")]
     size: Annotated[Optional[int], Doc("The size of the file in bytes.")]
     content_type: Annotated[
         Optional[str], Doc("The content type of the request, from the headers.")
     ]
+
 
 class Feature(BaseModel):
     feature_type: Literal["embedding", "metadata"]
