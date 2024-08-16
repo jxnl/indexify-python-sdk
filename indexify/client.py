@@ -5,11 +5,11 @@ import hashlib
 import json
 from collections import namedtuple
 from .settings import DEFAULT_SERVICE_URL, DEFAULT_SERVICE_URL_HTTPS
-from .extractor import ExtractorMetadata
+from .extractor_sdk.extractor import ExtractorMetadata
 from .extraction_policy import ExtractionGraph
 from .utils import json_set_default
 from .error import Error
-from .data import ContentMetadata
+from .extractor_sdk.data import ContentMetadata
 from .data_loaders import DataLoader
 from indexify.exceptions import ApiException
 from dataclasses import dataclass

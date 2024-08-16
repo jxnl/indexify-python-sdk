@@ -1,6 +1,6 @@
 from fasterwhisper import FasterWhisper
 from asr_extractor import ASRExtractor, ASRExtractorConfig
-from indexify import Content, Feature, extractor
+from .extractor_sdk.data import Feature, extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
 from indexify.data import BaseData

@@ -4,7 +4,6 @@ from typing import (
     Optional,
     Literal,
     Dict,
-    BinaryIO,
     Type,
     cast,
     Mapping,
