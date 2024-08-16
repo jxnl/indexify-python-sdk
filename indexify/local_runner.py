@@ -1,4 +1,5 @@
-from .data import BaseData, Feature
+from .extractor_sdk import Feature
+from .extractor_sdk.data import BaseData
 from indexify import Content, Extractor
 
 from collections import defaultdict
