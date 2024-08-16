@@ -1,5 +1,3 @@
-from fasterwhisper import FasterWhisper
-from asr_extractor import ASRExtractor, ASRExtractorConfig
 from indexify.extractor_sdk.data import Feature
 from indexify.extractor_sdk.extractor import extractor
 from indexify.graph import Graph

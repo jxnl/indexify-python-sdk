@@ -1,7 +1,7 @@
 from .extractor_sdk import Content, extractor, Extractor
 
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Self, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 from pydantic import BaseModel
 
 import itertools
@@ -34,7 +34,7 @@ class Graph:
         self._start_node = None
         self._input = input
 
-    def _node(self, extractor: Extractor, params: Any = None) -> Self:
+    def _node(self, extractor: Extractor, params: Any = None) ->  'Graph':
         name = extractor._extractor_name
 
         # if you've already inserted a node just ignore the new insertion.
@@ -54,7 +54,7 @@ class Graph:
         from_node: extractor,
         to_node: extractor,
         prefilter_predicates: Optional[str] = None,
-    ) -> Self:
+    ) -> 'Graph':
 
         self._node(from_node)
         self._node(to_node)
@@ -78,7 +78,7 @@ class Graph:
         from_node: extractor,
         to_nodes: List[extractor],
         prefilter_predicates: List[str] = [],
-    ) -> Self:
+    ) -> 'Graph':
         print(f"{to_nodes}, {prefilter_predicates}, {prefilter_predicates}")
         for t_n, p in itertools.zip_longest(
             to_nodes, prefilter_predicates, fillvalue=None
