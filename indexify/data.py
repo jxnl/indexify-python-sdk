@@ -115,6 +115,7 @@ class UploadFile(StarletteUploadFile):
             raise ValueError(f"Expected UploadFile, received: {type(__input_value)}")
         return cast(UploadFile, __input_value)
 
+
 class Feature(BaseModel):
     feature_type: Literal["embedding", "metadata"]
     name: str
@@ -126,7 +127,7 @@ class Feature(BaseModel):
         return cls(
             feature_type="embedding",
             name=name,
-            value={values: values, distance: distance},
+            value=json.dumps({"values": values, "distance": distance}),
             comment=None,
         )
 
@@ -138,7 +139,7 @@ class Feature(BaseModel):
 
 
 class Content(BaseModel):
-    id: str
+    id: Optional[str] = (None,)
     content_type: Optional[str]
     data: bytes
     features: List[Feature] = []
@@ -150,7 +151,7 @@ class Content(BaseModel):
         features: List[Feature] = [],
     ):
         return Content(
-            id="none-for-now",
+            id=None,
             content_type="text/plain",
             data=bytes(text, "utf-8"),
             features=features,

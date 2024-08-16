@@ -7,7 +7,7 @@ from .client import (
     generate_unique_hex_id,
 )
 from .data import ContentMetadata, Content, Feature
-from .extractor import Extractor, extractor, EmbeddingSchema
+from .extractor import Extractor, extractor, EmbeddingSchema, ExtractorMetadata
 from .settings import DEFAULT_SERVICE_URL
 from . import data_loaders
 
@@ -19,6 +19,7 @@ __all__ = [
     "Extractor",
     "extractor",
     "EmbeddingSchema",
+    "ExtractorMetadata",
     "extractor",
     "Document",
     "IndexifyClient",
