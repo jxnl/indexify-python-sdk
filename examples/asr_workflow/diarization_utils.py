@@ -6,15 +6,15 @@ from starlette.exceptions import HTTPException
 import sys
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 def preprocess_inputs(inputs, sampling_rate):
     inputs = ffmpeg_read(inputs, sampling_rate)
 
     if sampling_rate != 16000:
-        inputs = F.resample(
-            torch.from_numpy(inputs), sampling_rate, 16000
-        ).numpy()
+        inputs = F.resample(torch.from_numpy(inputs), sampling_rate, 16000).numpy()
 
     if len(inputs.shape) != 1:
         message = f"Diarization pipeline expects single channel audio, received {inputs.shape}"
@@ -82,10 +82,18 @@ def diarize_audio(diarizer_inputs, diarization_pipeline, parameters):
     return new_segments
 
 
-def post_process_segments_and_transcripts(new_segments, transcript, group_by_speaker) -> list:
+def post_process_segments_and_transcripts(
+    new_segments, transcript, group_by_speaker
+) -> list:
     # get the end timestamps for each chunk from the ASR output
     end_timestamps = np.array(
-        [chunk["timestamp"][-1] if chunk["timestamp"][-1] is not None else sys.float_info.max for chunk in transcript])
+        [
+            chunk["timestamp"][-1]
+            if chunk["timestamp"][-1] is not None
+            else sys.float_info.max
+            for chunk in transcript
+        ]
+    )
     segmented_preds = []
 
     # align the diarizer timestamps and the ASR timestamps
@@ -113,8 +121,8 @@ def post_process_segments_and_transcripts(new_segments, transcript, group_by_spe
                 segmented_preds.append({"speaker": segment["speaker"], **transcript[i]})
 
         # crop the transcripts and timestamp lists according to the latest timestamp (for faster argmin)
-        transcript = transcript[upto_idx + 1:]
-        end_timestamps = end_timestamps[upto_idx + 1:]
+        transcript = transcript[upto_idx + 1 :]
+        end_timestamps = end_timestamps[upto_idx + 1 :]
 
         if len(end_timestamps) == 0:
             break
@@ -125,11 +133,7 @@ def post_process_segments_and_transcripts(new_segments, transcript, group_by_spe
 def diarize(diarization_pipeline, file, parameters, asr_outputs):
     _, diarizer_inputs = preprocess_inputs(file, parameters.sampling_rate)
 
-    segments = diarize_audio(
-        diarizer_inputs, 
-        diarization_pipeline, 
-        parameters
-    )
+    segments = diarize_audio(diarizer_inputs, diarization_pipeline, parameters)
 
     return post_process_segments_and_transcripts(
         segments, asr_outputs["chunks"], group_by_speaker=False

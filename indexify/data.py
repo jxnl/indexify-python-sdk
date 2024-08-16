@@ -1,4 +1,16 @@
-from typing import Any, List, Optional, Literal, Dict, BinaryIO, Iterable, Callable, Type, cast, Mapping
+from typing import (
+    Any,
+    List,
+    Optional,
+    Literal,
+    Dict,
+    BinaryIO,
+    Iterable,
+    Callable,
+    Type,
+    cast,
+    Mapping,
+)
 from pydantic import BaseModel, Json, Field
 import json
 from starlette.datastructures import UploadFile as StarletteUploadFile
@@ -11,7 +23,7 @@ class BaseData(BaseModel):
 
     def get_features(self) -> List[Type[BaseModel]]:
         return []
-    
+
     def get_feature(self, name: str) -> Optional[Type[BaseModel]]:
         return self.meta.get(name)
 

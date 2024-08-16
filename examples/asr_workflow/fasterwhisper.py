@@ -5,10 +5,12 @@ import json
 import io
 from faster_whisper import WhisperModel
 
+
 class InputParams(BaseModel):
     model: str = "small"
     device: str = "cpu"
     compute_type: str = "int8"
+
 
 class FasterWhisper(Extractor):
     name = "tensorflake/fasterwhisper"
@@ -22,22 +24,26 @@ class FasterWhisper(Extractor):
     def extract(self, content: Content, params: InputParams) -> List[Content]:
         # Wrap the content data in io.BytesIO
         audio_stream = io.BytesIO(content.data)
-    
-        model = WhisperModel(params.model, device=params.device, compute_type=params.compute_type)
+
+        model = WhisperModel(
+            params.model, device=params.device, compute_type=params.compute_type
+        )
 
         segments, info = model.transcribe(audio_stream, beam_size=5)
 
         entries = []
         for segment in segments:
-            entries.append({
-                "timestamp": {"start": segment.start, "end": segment.end},
-                "text": segment.text.strip()
-            })
+            entries.append(
+                {
+                    "timestamp": {"start": segment.start, "end": segment.end},
+                    "text": segment.text.strip(),
+                }
+            )
 
         # Convert to JSON if needed
         json_output = json.dumps(entries, indent=2)
 
         # Return transformed content as needed
         return [
-            Content.from_json(json_output), 
+            Content.from_json(json_output),
         ]

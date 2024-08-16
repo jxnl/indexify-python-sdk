@@ -8,21 +8,39 @@ from pprint import pformat
 
 client = IndexifyClient()
 
+
 def setup():
     # Add contents
-    file_names=["skate.jpg", "congestion.jpg", "bushwick-bred.jpg", "141900.jpg", "132500.jpg", "123801.jpg","120701.jpg", "103701.jpg"]
-    file_urls = [f"https://extractor-files.diptanu-6d5.workers.dev/images/{file_name}" for file_name in file_names]
+    file_names = [
+        "skate.jpg",
+        "congestion.jpg",
+        "bushwick-bred.jpg",
+        "141900.jpg",
+        "132500.jpg",
+        "123801.jpg",
+        "120701.jpg",
+        "103701.jpg",
+    ]
+    file_urls = [
+        f"https://extractor-files.diptanu-6d5.workers.dev/images/{file_name}"
+        for file_name in file_names
+    ]
     for file_url in file_urls:
         client.ingest_remote_file(file_url, "image/png", {})
 
-    client.add_extraction_policy(extractor='tensorlake/yolo-extractor', name="object_detection")
+    client.add_extraction_policy(
+        extractor="tensorlake/yolo-extractor", name="object_detection"
+    )
     pass
+
 
 # Fetch the schema containing the bounding box and object name
 schema = client.list_schemas()["ddls"]["ingestion"]
 
+
 def ask(question: str):
-    template = f"""
+    template = (
+        f"""
     Images are stored in the database with the following schema:
     {schema}
 
@@ -30,18 +48,15 @@ def ask(question: str):
 
     Generate the SQL query based on the following question below:
 
-    """ + "Question: {question}"
+    """
+        + "Question: {question}"
+    )
 
     prompt = ChatPromptTemplate.from_template(template)
 
     model = ChatOpenAI()
 
-    chain = (
-        {"question": RunnablePassthrough()}
-        | prompt
-        | model
-        | StrOutputParser()
-    )
+    chain = {"question": RunnablePassthrough()} | prompt | model | StrOutputParser()
     generated_sql = chain.invoke(question)
 
     print("\n--------------------")
@@ -49,9 +64,10 @@ def ask(question: str):
     print("\nGenerated SQL:\n", generated_sql)
 
     query_result = client.sql_query(generated_sql)
-    query_result = pformat(query_result.result).replace('{', '').replace('}', '')
+    query_result = pformat(query_result.result).replace("{", "").replace("}", "")
 
-    template = f"""
+    template = (
+        f"""
     Images are stored in the database with the following schema:
     {schema}
 
@@ -63,22 +79,20 @@ def ask(question: str):
 
     Answer to the following question below:
 
-    """ + "Question: {question}"
- 
+    """
+        + "Question: {question}"
+    )
+
     prompt = ChatPromptTemplate.from_template(template)
 
-    chain = (
-        {"question": RunnablePassthrough()}
-        | prompt
-        | model
-        | StrOutputParser()
-    )
+    chain = {"question": RunnablePassthrough()} | prompt | model | StrOutputParser()
 
     answer = chain.invoke(question)
 
     print("\nAnswer:\n", answer)
     print("\n--------------------")
     pass
+
 
 # Setup the environment - call this only once
 setup()

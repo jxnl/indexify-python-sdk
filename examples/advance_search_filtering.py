@@ -17,28 +17,16 @@ extraction_policies:
 extraction_graph = ExtractionGraph.from_yaml(graph)
 client.create_extraction_graph(extraction_graph)
 
-label1 = {
-    "fruit": "apple",
-    "year": 2020,
-    "is_good": True
-}
+label1 = {"fruit": "apple", "year": 2020, "is_good": True}
 
-label2 = {
-    "fruit": "apple",
-    "year": 2022,
-    "is_good": False
-}
+label2 = {"fruit": "apple", "year": 2022, "is_good": False}
 
-label3 = {
-    "fruit": "banana",
-    "year": 2024,
-    "is_good": False
-}
+label3 = {"fruit": "banana", "year": 2024, "is_good": False}
 
 documents = [
     Document("I love apples", label1, None),
     Document("I hate apple pie", label2, None),
-    Document("I don't like rotten banana", label3, None)
+    Document("I don't like rotten banana", label3, None),
 ]
 
 content_ids = client.add_documents(graph_name, documents)
