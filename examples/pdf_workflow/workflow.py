@@ -9,13 +9,11 @@ from indexify.extractor_sdk.data import BaseData, PDFFile
 from sentence_transformers import SentenceTransformer
 
 from indexify.graph import Graph
-from indexify.local_runner import LocalRunner
 from tt_module import get_tables
 import pymupdf
 import fitz
 
 from pydantic import BaseModel
-
 
 
 @extractor(description="Download pdf")
@@ -134,7 +132,7 @@ class EmbeddingExtractor(Extractor):
 
 
 if __name__ == "__main__":
-    g = Graph("Extract pages, tables, images from pdf", input=str, start_node=download_pdf)
+    g = Graph("Extract pages, tables, images from pdf", input=str, start_node=download_pdf, run_local=True)
 
     g.add_edge(download_pdf, extract_page_text)
     g.add_edge(download_pdf, extract_images)
@@ -145,22 +143,22 @@ if __name__ == "__main__":
 
     g.add_param(make_chunks, {"chunk_size": 2000})
 
-    runner = LocalRunner()
-
-    runner.clear_cache(extract_tables)
+    # Clear caches if required
+    # g.clear_cache_for_node(extract_tables)
+    # g.clear_cache_for_all_nodes()
 
     url = "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
-    runner.run(g, wf_input=url)
+    g.run(wf_input=url, local=True)
 
-    print(f"number of pages {len(runner.get_result(extract_page_text))}")
-    print(f"number of images {len(runner.get_result(extract_images))}")
-    print(f"number of tables {len(runner.get_result(extract_tables))}")
-    print(f"number of embeddings {len(runner.get_result(EmbeddingExtractor))}")
+    print(f"number of pages {len(g.get_result(extract_page_text))}")
+    print(f"number of images {len(g.get_result(extract_images))}")
+    print(f"number of tables {len(g.get_result(extract_tables))}")
+    print(f"number of embeddings {len(g.get_result(EmbeddingExtractor))}")
 
     print('\n---- Text output')
-    print(runner.get_result(extract_page_text)[3])
+    print(g.get_result(extract_page_text)[3])
     print('---- /Text output\n')
 
     print('\n---- Embedding output')
-    print(runner.get_result(EmbeddingExtractor)[3])
+    print(g.get_result(EmbeddingExtractor)[3])
     print('---- /Embedding output\n')
