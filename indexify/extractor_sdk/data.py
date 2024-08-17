@@ -18,7 +18,7 @@ class BaseData(BaseModel):
 
     def get_features(self) -> List[Type[BaseModel]]:
         return self.meta
-    
+
     def get_feature(self, name: str) -> Optional[Type[BaseModel]]:
         return self.meta.get(name)
 
@@ -101,3 +101,8 @@ class ContentMetadata(BaseModel):
             mime_type=json["mime_type"],
             extracted_metadata=json["extracted_metadata"],
         )
+
+
+class PDFFile(BaseData):
+    data: bytes
+    mime_type: str

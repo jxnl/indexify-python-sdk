@@ -1,10 +1,10 @@
 from indexify.extractor_sdk.data import BaseData, Feature
-from indexify.extractor_sdk.extractor import Extractor
+from indexify.extractor_sdk.extractor import extractor, Extractor
 
 from collections import defaultdict
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any, Callable, Dict, Optional, Union
 
-import json
+from indexify.graph import Graph
 
 
 class LocalRunner:
@@ -22,16 +22,17 @@ class LocalRunner:
     # those bytes have to be a python type
 
     # _input needs to be serializable into python object (ie json for ex) and Feature
-    def _run(self, g, _input: BaseData, node_name: str):
+    def _run(self, g: Graph, _input: BaseData, node_name: str):
         print(f"---- Starting node {node_name}")
+        print(f'node_name {node_name}')
 
         extractor_construct: Callable = g.nodes[node_name]
         params = g.params.get(node_name, None)
 
-        res = extractor_construct().extract(_input=_input, params=params)
+
+        res = extractor_construct().extract(input=_input, params=params)
         if not isinstance(res, list):
             res = [res]
-
 
         res_data = [i for i in res if not isinstance(i, Feature)]
         res_features = [i for i in res if isinstance(i, Feature)]
@@ -76,6 +77,6 @@ class LocalRunner:
 
         return all(bools)
 
-    def get_result(self, node: Extractor) -> Any:
-        node_name = node._extractor_name
+    def get_result(self, node: Union[extractor, Extractor]) -> Any:
+        node_name = node.name
         return self.results[node_name]

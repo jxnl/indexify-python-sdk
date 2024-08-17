@@ -206,13 +206,13 @@ def extractor(
 
             class DecoratedFn(Extractor):
                 @classmethod
-                def extract(cls, _input: Type[BaseData], params: Type[BaseModel]=None) -> List[Union[Type[BaseModel], Type[Feature]]]:  # type: ignore
+                def extract(cls, input: Type[BaseData], params: Type[BaseModel]=None) -> List[Union[Type[BaseModel], Type[Feature]]]:  # type: ignore
                     # TODO we can force all the functions to take in a parms object
                     # or check if someone adds a params
                     if params is None:
-                        return fn(_input)
+                        return fn(input)
                     else:
-                        return fn(_input, params)
+                        return fn(input, params)
 
                 def sample_input(self) -> Content:
                     return sample_content() if sample_content else self.sample_text()
@@ -223,6 +223,7 @@ def extractor(
             return DecoratedFn
 
         wrapper._extractor_name = fn.__name__
+        wrapper.name = fn.__name__
 
         return wrapper
 
