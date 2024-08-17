@@ -47,7 +47,7 @@ class BaseClient(ABC):
     @abstractmethod
     def extracted_objects(self, graph: str, ingested_object_id: str, extractor_name: Optional[str]) -> Union[Dict[str, List[Any]], List[Any]]:
         """
-        Returns the extracted objects from a particular graph and ingested object. If the extractor name is provided, only the objects extracted by that extractor are returned.
+        Returns the extracted objects by a graph for an ingested object. If the extractor name is provided, only the objects extracted by that extractor are returned.
         If the extractor name is not provided, all the extracted objects are returned for the input object.
         graph: str: The name of the graph
         ingested_object_id: str: The ID of the ingested object
