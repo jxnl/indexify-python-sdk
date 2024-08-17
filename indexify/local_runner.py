@@ -1,36 +1,50 @@
+import hashlib
+import os
+import pickle
+import shutil
+from pathlib import Path
+
 from indexify.extractor_sdk.data import BaseData, Feature
 from indexify.extractor_sdk.extractor import extractor, Extractor
 
 from collections import defaultdict
 from typing import Any, Callable, Dict, Optional, Union
 
-from indexify.graph import Graph
+from indexify.run_graph import RunGraph
+from indexify.runner import Runner
 
 
-class LocalRunner:
+class LocalRunner(Runner):
     def __init__(self):
         self.results: Dict[str, Any] = defaultdict(
             list
         )  # TODO should the Any be Content?
 
     def run(self, g, wf_input: BaseData):
-        g._assign_start_node()
         return self._run(g, _input=wf_input, node_name=g._start_node)
-
 
     # graph is getting some files which are files, some lables and the MIME type of the bytes
     # those bytes have to be a python type
 
     # _input needs to be serializable into python object (ie json for ex) and Feature
-    def _run(self, g: Graph, _input: BaseData, node_name: str):
+    def _run(self, g: RunGraph, _input: BaseData, node_name: str):
         print(f"---- Starting node {node_name}")
         print(f'node_name {node_name}')
 
         extractor_construct: Callable = g.nodes[node_name]
         params = g.params.get(node_name, None)
 
+        # NOTE: User should clear cache for nodes they would like to re-rerun
+        input_hash = hashlib.sha256(str(_input).encode()).hexdigest()
+        memo_output = self.get_from_memo(node_name, input_hash)
+        if memo_output is None:
+            print("=== FYI Writing output to cache")
+            res = extractor_construct().extract(input=_input, params=params)
+            self.put_into_memo(node_name, input_hash, pickle.dumps(res))
+        else:
+            print("=== Reading output from cache")
+            res = pickle.loads(memo_output)
 
-        res = extractor_construct().extract(input=_input, params=params)
         if not isinstance(res, list):
             res = [res]
 
@@ -80,3 +94,32 @@ class LocalRunner:
     def get_result(self, node: Union[extractor, Extractor]) -> Any:
         node_name = node.name
         return self.results[node_name]
+
+    def deleted_from_memo(self, node_name):
+        path_prefix = f"./indexify_local_runner_cache/{node_name}"
+
+        if os.path.exists(path_prefix) and os.path.isdir(path_prefix):
+            shutil.rmtree(path_prefix)
+
+    def get_from_memo(self, node_name, input_hash):
+        path_prefix = f"./indexify_local_runner_cache/{node_name}"
+        file_name = f"{input_hash}"
+        file_path = f"{path_prefix}/{file_name}"
+
+        if not os.path.exists(file_path):
+            return None
+
+        with open(file_path, 'rb') as f:
+            return f.read()
+
+    def put_into_memo(self, node_name, input_hash, output):
+        path_prefix = f"./indexify_local_runner_cache/{node_name}"
+        file_name = f"{input_hash}"
+        file_path = f"{path_prefix}/{file_name}"
+
+        os.makedirs(path_prefix, exist_ok=True)
+
+        Path(file_path).touch()
+
+        with open(file_path, 'wb') as f:
+            return f.write(output)
