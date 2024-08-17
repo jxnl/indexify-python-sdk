@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from .extractor_sdk import Graph
+from .extractor_sdk import Graph, Feature
 from typing import Any, List, Optional, Union, Dict
 
 class BaseClient(ABC):
@@ -53,6 +53,15 @@ class BaseClient(ABC):
         ingested_object_id: str: The ID of the ingested object
         extractor_name: Optional[str]: The name of the extractor whose output is to be returned if provided
         return: Union[Dict[str, List[Any]], List[Any]]: The extracted objects. If the extractor name is provided, the output is a list of extracted objects by the extractor. If the extractor name is not provided, the output is a dictionary with the extractor name as the key and the extracted objects as the value. If no objects are found, an empty list is returned.
+        """
+        pass
+
+    @abstractmethod
+    def features(self, object_id: str, graph: Optional[str]) -> Union[Dict[str, List[Feature]], List[Feature]]:
+        """
+        Returns the features of an object.
+        object_id: str: The ID of the object
+        return: List[Feature]: The features associated with the object that were extracted. If a graph name is provided, only the features extracted by that graph are returned.
         """
         pass
 
