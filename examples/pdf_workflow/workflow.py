@@ -147,6 +147,8 @@ if __name__ == "__main__":
 
     runner = LocalRunner()
 
+    runner.clear_cache(extract_tables)
+
     url = "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
     runner.run(g, wf_input=url)
 
