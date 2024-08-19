@@ -1,6 +1,6 @@
 from typing import Union, Optional, List, Type, Tuple, Callable, get_type_hints, Dict
 import inspect
-from pydantic import BaseModel, Json
+from pydantic import BaseModel, Field
 from abc import ABC, abstractmethod
 from .data import BaseData, Content, Feature
 import json
@@ -11,7 +11,6 @@ import requests
 class EmbeddingSchema(BaseModel):
     dim: int
     distance: str = "cosine"
-
 
 class ExtractorMetadata(BaseModel):
     name: str
@@ -40,6 +39,8 @@ class Extractor(ABC):
     description: str = ""
 
     input_mime_types = ["text/plain"]
+
+    embeddings: Dict[str, EmbeddingSchema] = {}
 
     @abstractmethod
     def extract(
