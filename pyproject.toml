@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "indexify"
-version = "0.0.38"
+version = "0.0.39"
 description = "Python Client for Indexify"
 authors = ["Diptanu Gon Choudhury <diptanuc@gmail.com>", "Lucas Jackson <lucas@tensorlake.ai>", "Vijay Parthasarathy <vijay2win@gmail.com>"]
 license = "Apache 2.0"
