@@ -10,7 +10,8 @@ import requests
 
 class EmbeddingSchema(BaseModel):
     dim: int
-    distance: str = "cosine"
+    distance: Optional[str] = "cosine"
+    database_url: Optional[str] = None
 
 class ExtractorMetadata(BaseModel):
     name: str
@@ -40,8 +41,8 @@ class Extractor(ABC):
 
     input_mime_types = ["text/plain"]
 
-    embeddings: Dict[str, EmbeddingSchema] = {}
-
+    embedding_indexes: Dict[str, EmbeddingSchema] = {}
+    
     @abstractmethod
     def extract(
         self, input: Type[BaseModel], params: Type[BaseModel] = None
@@ -55,30 +56,8 @@ class Extractor(ABC):
         pass
 
     @classmethod
-    @abstractmethod
     def sample_input(cls) -> Tuple[Content, Type[BaseModel]]:
         pass
-
-    def describe(self) -> ExtractorMetadata:
-        embedding_schemas = {}
-        try:
-            embedding_schemas = self.embedding_schemas
-        except NotImplementedError:
-            pass
-
-        json_schema = (
-            self._param_cls.model_json_schema() if self._param_cls is not None else None
-        )
-        return ExtractorMetadata(
-            name=self.name,
-            version=self.version,
-            description=self.description,
-            system_dependencies=self.system_dependencies,
-            python_dependencies=self.python_dependencies,
-            input_mime_types=self.input_mime_types,
-            embedding_schemas=embedding_schemas,
-            input_params=json.dumps(json_schema),
-        )
 
     def _download_file(self, url, filename):
         if os.path.exists(filename):
