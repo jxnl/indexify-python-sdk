@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 
 from indexify.graph import Graph
 from tt_module import get_tables
+import chromadb
 import pymupdf
 import fitz
 
@@ -107,6 +108,9 @@ def make_chunks(page_text: PageText, params: ChunkParams= None) -> List[TextChun
 class Embedding(BaseData):
     embedding: List[float]
 
+    text: str
+
+
 class EmbeddingExtractor(Extractor):
     name = "temp/embedding"
     description = "Extractor class that captures an embedding model"
@@ -122,7 +126,7 @@ class EmbeddingExtractor(Extractor):
 
         embeddings = self.model.encode([text])
 
-        embeddings = [Embedding(embedding=i) for i in embeddings]
+        embeddings = [Embedding(embedding=i, text=j) for i, j in zip(embeddings, [text])]
 
         return embeddings
 
@@ -131,7 +135,30 @@ class EmbeddingExtractor(Extractor):
         return TextChunk(chunk="this is some sample chunked text")
 
 
+class VectorStoreParams(BaseModel):
+    collection_name: str
+
+
+@extractor(description="Write to vector store")
+def write_to_vector_store(
+    em: Embedding,
+    params: VectorStoreParams = None
+):
+    collection = chroma_client.get_or_create_collection(name=params["collection_name"])
+    print(dir(em))
+    collection.add(
+        embeddings = em.embedding,
+        documents = em.text
+    )
+
 if __name__ == "__main__":
+    # For this example we are setting up a local chroma instance to save the
+    # embeddings. We will use this client in the main method to query.
+
+    TEST_COLLECTION_NAME = "test-collection"
+    chroma_client = chromadb.Client()
+    collection = chroma_client.create_collection(name=TEST_COLLECTION_NAME)
+
     g = Graph("Extract pages, tables, images from pdf", input=str, start_node=download_pdf, run_local=True)
 
     g.add_edge(download_pdf, extract_page_text)
@@ -141,7 +168,11 @@ if __name__ == "__main__":
     g.add_edge(extract_page_text, make_chunks)
     g.add_edge(make_chunks, EmbeddingExtractor)
 
+    g.add_edge(EmbeddingExtractor, write_to_vector_store)
+
     g.add_param(make_chunks, {"chunk_size": 2000})
+
+    g.add_param(write_to_vector_store, {"collection_name": TEST_COLLECTION_NAME})
 
     # Clear caches if required
     # g.clear_cache_for_node(extract_tables)
@@ -150,15 +181,24 @@ if __name__ == "__main__":
     url = "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
     g.run(wf_input=url, local=True)
 
+    # These outputs will confirm the executor outputs.
     print(f"number of pages {len(g.get_result(extract_page_text))}")
     print(f"number of images {len(g.get_result(extract_images))}")
     print(f"number of tables {len(g.get_result(extract_tables))}")
     print(f"number of embeddings {len(g.get_result(EmbeddingExtractor))}")
 
-    print('\n---- Text output')
-    print(g.get_result(extract_page_text)[3])
-    print('---- /Text output\n')
+    # Uncomment these lines for sanity check on the output
+    # print('\n---- Text output')
+    # print(g.get_result(extract_page_text)[3])
+    # print('---- /Text output\n')
+    #
+    # print('\n---- Embedding output')
+    # print(g.get_result(EmbeddingExtractor)[3])
+    # print('---- /Embedding output\n')
 
-    print('\n---- Embedding output')
-    print(g.get_result(EmbeddingExtractor)[3])
-    print('---- /Embedding output\n')
+
+    results = collection.query(
+        query_texts=["this is a test"],
+        n_results=2
+    )
+    print(results)
