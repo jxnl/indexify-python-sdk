@@ -10,7 +10,7 @@ from indexify.extractor_sdk.extractor import extractor, Extractor
 from collections import defaultdict
 from typing import Any, Callable, Dict, Optional, Union
 
-from indexify.run_graph import RunGraph
+from indexify.graph import Graph
 from indexify.runner import Runner
 
 
@@ -27,7 +27,7 @@ class LocalRunner(Runner):
     # those bytes have to be a python type
 
     # _input needs to be serializable into python object (ie json for ex) and Feature
-    def _run(self, g: RunGraph, _input: BaseData, node_name: str):
+    def _run(self, g: Graph, _input: BaseData, node_name: str):
         print(f"---- Starting node {node_name}")
         print(f'node_name {node_name}')
 

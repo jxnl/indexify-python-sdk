@@ -13,6 +13,7 @@ python = "^3.9"
 httpx = { version = "^0", extras = ["http2"] }
 pyyaml = "^6"
 pydantic = "^2.8"
+cloudpickle = "^3"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

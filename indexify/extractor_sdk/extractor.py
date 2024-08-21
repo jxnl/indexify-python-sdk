@@ -169,7 +169,7 @@ def extractor(
     python_dependencies: Optional[List[str]] = None,
     system_dependencies: Optional[List[str]] = None,
     input_mime_types: Optional[List[str]] = None,
-    embedding_schemas: Optional[Dict[str, EmbeddingSchema]] = None,
+    embedding_indexes: Optional[Dict[str, EmbeddingSchema]] = None,
     sample_content: Optional[Callable] = None,
 ):
     args = locals()
@@ -177,7 +177,7 @@ def extractor(
 
     def construct(fn):
         def wrapper():
-            hint = get_type_hints(fn).get("params", dict)
+            description = fn.__doc__ or args.get("description", "")
 
             if not args.get("name"):
                 args[
@@ -199,6 +199,7 @@ def extractor(
 
             for key, val in args.items():
                 setattr(DecoratedFn, key, val)
+            DecoratedFn.description = description
 
             return DecoratedFn
 

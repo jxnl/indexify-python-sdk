@@ -16,8 +16,11 @@ import fitz
 from pydantic import BaseModel
 
 
-@extractor(description="Download pdf")
+@extractor()
 def download_pdf(url: str) -> PDFFile:
+    """
+    Download pdf from url
+    """
     import urllib.request
     filename, _ = urllib.request.urlretrieve(url)
 
@@ -35,8 +38,11 @@ class PageText(BaseData):
     page_num: int
 
 
-@extractor(description="Extract page text from pdf")
+@extractor()
 def extract_page_text(pdf_file: PDFFile) -> List[PageText]:
+    """
+    Extract page text from pdf
+    """
     output = []
     with pymupdf.open("pdf", pdf_file.data) as doc:
         for page_num, page in enumerate(doc):
@@ -52,8 +58,11 @@ class PageImage(BaseData):
     page_num: int
     img_num: int
 
-@extractor(description="Extract image from pdf")
+@extractor()
 def extract_images(pdf_file: PDFFile) -> List[PageImage]:
+    """
+    Extract images from pdf
+    """
     output = []
 
     doc = fitz.open("pdf", pdf_file.data)
@@ -73,8 +82,11 @@ class PageTable(BaseData):
 
     page_num: int
 
-@extractor(description="Extract table from pdf")
+@extractor()
 def extract_tables(pdf_file: PDFFile) -> List[PageTable]:
+    """
+    Extract tables from pdf
+    """
     output = []
 
     tables = get_tables(pdf_path=pdf_file.data)
@@ -142,10 +154,6 @@ if __name__ == "__main__":
     g.add_edge(make_chunks, EmbeddingExtractor)
 
     g.add_param(make_chunks, {"chunk_size": 2000})
-
-    # Clear caches if required
-    # g.clear_cache_for_node(extract_tables)
-    # g.clear_cache_for_all_nodes()
 
     url = "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
     g.run(wf_input=url, local=True)

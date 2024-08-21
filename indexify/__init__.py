@@ -9,9 +9,11 @@ from .client import (
 from . import extractor_sdk
 from .settings import DEFAULT_SERVICE_URL
 from . import data_loaders
+from .graph import Graph
 
 __all__ = [
     "data_loaders",
+    "Graph",
     "Document",
     "extractor_sdk",
     "IndexifyClient",

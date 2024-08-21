@@ -103,6 +103,6 @@ class ContentMetadata(BaseModel):
         )
 
 
-class PDFFile(BaseData):
+class File(BaseData):
     data: bytes
     mime_type: str
