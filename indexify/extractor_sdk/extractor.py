@@ -45,6 +45,8 @@ class Extractor(ABC):
 
     version: str = "0.0.0"
 
+    base_image: Optional[str] = None
+
     system_dependencies: List[str] = []
 
     python_dependencies: List[str] = []
