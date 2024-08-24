@@ -1,16 +1,15 @@
-import logging
-import torch
 import io
-import numpy as np
+import logging
+from typing import List, Literal, Optional, Union
 
+import numpy as np
+import torch
+from diarization_utils import diarize
 from indexify_extractor_sdk import Content, Extractor, Feature
 from pyannote.audio import Pipeline
-from transformers import pipeline, AutoModelForCausalLM
-from diarization_utils import diarize
-
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-from typing import Optional, Literal, List, Union
+from transformers import AutoModelForCausalLM, pipeline
 
 logger = logging.getLogger(__name__)
 

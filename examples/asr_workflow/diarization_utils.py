@@ -1,11 +1,11 @@
-import torch
-import numpy as np
-from torchaudio import functional as F
-from transformers.pipelines.audio_utils import ffmpeg_read
-from starlette.exceptions import HTTPException
+import logging
 import sys
 
-import logging
+import numpy as np
+import torch
+from starlette.exceptions import HTTPException
+from torchaudio import functional as F
+from transformers.pipelines.audio_utils import ffmpeg_read
 
 logger = logging.getLogger(__name__)
 

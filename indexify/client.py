@@ -1,20 +1,23 @@
-import yaml
-import httpx
-import uuid
 import hashlib
 import json
-from collections import namedtuple
-from .settings import DEFAULT_SERVICE_URL, DEFAULT_SERVICE_URL_HTTPS
-from .extractor_sdk.extractor import ExtractorMetadata
-from .extraction_policy import ExtractionGraph
-from .utils import json_set_default
-from .error import Error
-from .extractor_sdk.data import ContentMetadata
-from .data_loaders import DataLoader
-from indexify.exceptions import ApiException
-from dataclasses import dataclass
-from typing import List, Optional, Union, Dict
 import logging
+import uuid
+from collections import namedtuple
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Union
+
+import httpx
+import yaml
+
+from indexify.exceptions import ApiException
+
+from .data_loaders import DataLoader
+from .error import Error
+from .extraction_policy import ExtractionGraph
+from .extractor_sdk.data import ContentMetadata
+from .extractor_sdk.extractor import ExtractorMetadata
+from .settings import DEFAULT_SERVICE_URL, DEFAULT_SERVICE_URL_HTTPS
+from .utils import json_set_default
 
 Document = namedtuple("Document", ["text", "labels", "id"])
 

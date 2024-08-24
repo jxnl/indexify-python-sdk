@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from .extractor_sdk import Graph, Feature
-from typing import Any, List, Optional, Union, Dict
+from typing import Any, Dict, List, Optional, Union
+
+from .extractor_sdk import Feature, Graph
+
 
 class BaseClient(ABC):
 
@@ -23,7 +25,7 @@ class BaseClient(ABC):
 
     ### Ingestion APIs
     @abstractmethod
-    def invoke_graph_with_object(self, graph:str, object: Any) -> str:
+    def invoke_graph_with_object(self, graph: str, object: Any) -> str:
         """
         Invokes a graph with an input object.
         graph: str: The name of the graph to invoke
@@ -42,10 +44,11 @@ class BaseClient(ABC):
         """
         pass
 
-
     ### Retrieval APIs
     @abstractmethod
-    def extracted_objects(self, graph: str, ingested_object_id: str, extractor_name: Optional[str]) -> Union[Dict[str, List[Any]], List[Any]]:
+    def extracted_objects(
+        self, graph: str, ingested_object_id: str, extractor_name: Optional[str]
+    ) -> Union[Dict[str, List[Any]], List[Any]]:
         """
         Returns the extracted objects by a graph for an ingested object. If the extractor name is provided, only the objects extracted by that extractor are returned.
         If the extractor name is not provided, all the extracted objects are returned for the input object.
@@ -57,11 +60,12 @@ class BaseClient(ABC):
         pass
 
     @abstractmethod
-    def features(self, object_id: str, graph: Optional[str]) -> Union[Dict[str, List[Feature]], List[Feature]]:
+    def features(
+        self, object_id: str, graph: Optional[str]
+    ) -> Union[Dict[str, List[Feature]], List[Feature]]:
         """
         Returns the features of an object.
         object_id: str: The ID of the object
         return: List[Feature]: The features associated with the object that were extracted. If a graph name is provided, only the features extracted by that graph are returned.
         """
         pass
-

@@ -1,5 +1,5 @@
-from .data import ContentMetadata, Content, Feature
-from .extractor import Extractor, extractor, EmbeddingSchema, ExtractorMetadata
+from .data import Content, ContentMetadata, Feature
+from .extractor import EmbeddingSchema, Extractor, ExtractorMetadata, extractor
 from .utils import SampleExtractorData
 
 __all__ = [

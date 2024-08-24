@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+import tempfile
 from enum import Enum
 from typing import List, Optional
-import tempfile
-
 
 import deepdoctection as dd
+from pydantic import BaseModel
+
 
 class PageFragmentType(str, Enum):
     TEXT = "text"
@@ -16,13 +16,16 @@ class Image(BaseModel):
     data: bytes
     mime_type: str
 
+
 class TableEncoding(str, Enum):
     CSV = "csv"
     HTML = "html"
 
+
 class Table(BaseModel):
     data: str
     encoding: TableEncoding
+
 
 class PageFragment(BaseModel):
     fragment_type: PageFragmentType
@@ -36,11 +39,10 @@ class Page(BaseModel):
     number: int
     fragments: List[PageFragment]
 
+
 class PDFParser:
-
-    def __init__(self, data: bytes, language: Optional[str] = 'en'):
+    def __init__(self, data: bytes, language: Optional[str] = "en"):
         self._data = data
-
 
     def parse(self) -> List[Page]:
         analyzer = dd.get_dd_analyzer()
@@ -58,19 +60,35 @@ class PDFParser:
             fragments = []
             for layout in parsed_page.layouts:
                 if layout.category_name in ["text", "title"]:
-                    fragments.append(PageFragment(fragment_type=PageFragmentType.TEXT, text=layout.text, reading_order=layout.reading_order))
+                    fragments.append(
+                        PageFragment(
+                            fragment_type=PageFragmentType.TEXT,
+                            text=layout.text,
+                            reading_order=layout.reading_order,
+                        )
+                    )
             figures = parsed_page.get_annotation(category_names=dd.LayoutType.FIGURE)
             print(len(figures))
             for figure in figures:
-                image_bytes =  dd.viz_handler.encode(figure.viz())
-                fragments.append(PageFragment(fragment_type=PageFragmentType.FIGURE, image=Image(data=image_bytes, mime_type="image/png"), reading_order=figure.reading_order)) 
-
+                image_bytes = dd.viz_handler.encode(figure.viz())
+                fragments.append(
+                    PageFragment(
+                        fragment_type=PageFragmentType.FIGURE,
+                        image=Image(data=image_bytes, mime_type="image/png"),
+                        reading_order=figure.reading_order,
+                    )
+                )
 
             tables = parsed_page.get_annotation(category_names=dd.LayoutType.TABLE)
             print(len(tables))
             for table in tables:
-                fragments.append(PageFragment(fragment_type=PageFragmentType.TABLE, table=Table(data=table.html, encoding=TableEncoding.HTML), reading_order=table.reading_order))
-
+                fragments.append(
+                    PageFragment(
+                        fragment_type=PageFragmentType.TABLE,
+                        table=Table(data=table.html, encoding=TableEncoding.HTML),
+                        reading_order=table.reading_order,
+                    )
+                )
 
             outputs.append(Page(number=page_num, fragments=fragments))
 

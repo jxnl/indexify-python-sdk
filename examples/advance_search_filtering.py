@@ -1,7 +1,8 @@
 # This requires the server to be running with MiniLM extractor.
 
 import uuid
-from indexify import IndexifyClient, ExtractionGraph, Document
+
+from indexify import Document, ExtractionGraph, IndexifyClient
 
 # Create a simple extraction graph.
 client = IndexifyClient()

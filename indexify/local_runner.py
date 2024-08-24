@@ -2,14 +2,12 @@ import hashlib
 import os
 import pickle
 import shutil
-from pathlib import Path
-
-from indexify.extractor_sdk.data import BaseData, Feature
-from indexify.extractor_sdk.extractor import extractor, Extractor
-
 from collections import defaultdict
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
 
+from indexify.extractor_sdk.data import BaseData, Feature
+from indexify.extractor_sdk.extractor import Extractor, extractor
 from indexify.graph import Graph
 from indexify.runner import Runner
 
@@ -29,7 +27,7 @@ class LocalRunner(Runner):
     # _input needs to be serializable into python object (ie json for ex) and Feature
     def _run(self, g: Graph, _input: BaseData, node_name: str):
         print(f"---- Starting node {node_name}")
-        print(f'node_name {node_name}')
+        print(f"node_name {node_name}")
 
         extractor_construct: Callable = g.nodes[node_name]
         params = g.params.get(node_name, None)
@@ -65,7 +63,9 @@ class LocalRunner(Runner):
         for out_edge, pre_filter_predicate in g.edges[node_name]:
             # TODO there are no reductions yet, each recursion finishes it's path and returns
             for r in data_to_process:
-                if self._prefilter_content(content=r, prefilter_predicate=pre_filter_predicate):
+                if self._prefilter_content(
+                    content=r, prefilter_predicate=pre_filter_predicate
+                ):
                     continue
 
                 self._run(g, _input=r, node_name=out_edge)
@@ -73,7 +73,10 @@ class LocalRunner(Runner):
     """
     Returns True if content should be filtered
     """
-    def _prefilter_content(self, content: BaseData, prefilter_predicate: Optional[str]) -> bool:
+
+    def _prefilter_content(
+        self, content: BaseData, prefilter_predicate: Optional[str]
+    ) -> bool:
         if prefilter_predicate is None:
             return False
 
@@ -83,9 +86,9 @@ class LocalRunner(Runner):
 
         # TODO For now only support `and` and `=` and `string values`
         bools = []
-        metadata = content.get_features()['metadata']
+        metadata = content.get_features()["metadata"]
         for atom in atoms:
-            l, r = atom.split('=')
+            l, r = atom.split("=")
             if l in metadata:
                 bools.append(metadata[l] != r)
 
@@ -109,7 +112,7 @@ class LocalRunner(Runner):
         if not os.path.exists(file_path):
             return None
 
-        with open(file_path, 'rb') as f:
+        with open(file_path, "rb") as f:
             return f.read()
 
     def put_into_memo(self, node_name, input_hash, output):
@@ -121,5 +124,5 @@ class LocalRunner(Runner):
 
         Path(file_path).touch()
 
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             return f.write(output)

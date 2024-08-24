@@ -4,8 +4,9 @@ build:
 	@rm -rf dist
 	@poetry build
 
-format:
-	@poetry run black .
+fmt:
+	black .
+	isort . --profile black
 
 lint:
 	@poetry run pylint ./indexify

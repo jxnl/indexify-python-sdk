@@ -1,24 +1,28 @@
-import json
 import itertools
+import json
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Type, Union
 
 import cloudpickle
 from pydantic import BaseModel
 
-from .extractor_sdk import Content, extractor, Extractor
+from .extractor_sdk import Content, Extractor, extractor
 from .runner import Runner
+
 
 @extractor(description="id function")
 def _id(content: Content) -> List[Content]:
     return [content]
 
 
-def load_graph(graph: bytes) -> 'Graph':
+def load_graph(graph: bytes) -> "Graph":
     return cloudpickle.loads(graph)
 
+
 class Graph:
-    def __init__(self, name: str, input: Type[BaseModel], start_node: extractor, runner: Runner):
+    def __init__(
+        self, name: str, input: Type[BaseModel], start_node: extractor, runner: Runner
+    ):
         # TODO check for cycles
         self.name = name
 
@@ -40,7 +44,7 @@ class Graph:
     def get_extractor(self, name: str) -> Extractor:
         return self.nodes[name]
 
-    def _node(self, extractor: Extractor, params: Any = None) -> 'Graph':
+    def _node(self, extractor: Extractor, params: Any = None) -> "Graph":
         name = extractor.name
 
         # if you've already inserted a node just ignore the new insertion.
@@ -54,7 +58,7 @@ class Graph:
         self._topo_counter[name] = 1
 
         return self
-    
+
     def serialize(self):
         return cloudpickle.dumps(self)
 
@@ -63,7 +67,7 @@ class Graph:
         from_node: Type[Extractor],
         to_node: Type[Extractor],
         prefilter_predicates: Optional[str] = None,
-    ) -> 'Graph':
+    ) -> "Graph":
 
         self._node(from_node)
         self._node(to_node)
@@ -87,7 +91,7 @@ class Graph:
         from_node: extractor,
         to_nodes: List[extractor],
         prefilter_predicates: List[str] = [],
-    ) -> 'Graph':
+    ) -> "Graph":
         print(f"{to_nodes}, {prefilter_predicates}, {prefilter_predicates}")
         for t_n, p in itertools.zip_longest(
             to_nodes, prefilter_predicates, fillvalue=None

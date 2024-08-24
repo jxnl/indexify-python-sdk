@@ -1,5 +1,12 @@
-from indexify import AIndex, ARepository, TextChunk, DEFAULT_SERVICE_URL, wait_until
 from datasets import load_dataset
+
+from indexify import (
+    DEFAULT_SERVICE_URL,
+    AIndex,
+    ARepository,
+    TextChunk,
+    wait_until,
+)
 
 
 class DemoQA:

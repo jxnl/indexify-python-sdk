@@ -1,6 +1,7 @@
-from . import DataLoader, FileMetadata
-from typing import List, Optional
 import os
+from typing import List, Optional
+
+from . import DataLoader, FileMetadata
 
 
 class LocalDirectoryLoader(DataLoader):

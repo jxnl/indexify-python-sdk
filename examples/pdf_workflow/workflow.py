@@ -1,19 +1,16 @@
-from typing import List
 import json
+from typing import List
 
-import httpx
-
-from indexify.extractor_sdk.extractor import extractor, Extractor
-from indexify.extractor_sdk.data import BaseData, PDFFile
-
-from sentence_transformers import SentenceTransformer
-
-from indexify.graph import Graph
-from tt_module import get_tables
-import pymupdf
 import fitz
-
+import httpx
+import pymupdf
 from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
+from tt_module import get_tables
+
+from indexify.extractor_sdk.data import BaseData, PDFFile
+from indexify.extractor_sdk.extractor import Extractor, extractor
+from indexify.graph import Graph
 
 
 @extractor()
@@ -22,11 +19,12 @@ def download_pdf(url: str) -> PDFFile:
     Download pdf from url
     """
     import urllib.request
+
     filename, _ = urllib.request.urlretrieve(url)
 
     resp = httpx.request(url=url, method="GET")
 
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         output = PDFFile(data=resp.content, mime_type="application/pdf")
 
     return output
@@ -51,12 +49,14 @@ def extract_page_text(pdf_file: PDFFile) -> List[PageText]:
 
     return output
 
+
 class PageImage(BaseData):
     content_type: str
     data: bytes
 
     page_num: int
     img_num: int
+
 
 @extractor()
 def extract_images(pdf_file: PDFFile) -> List[PageImage]:
@@ -72,7 +72,14 @@ def extract_images(pdf_file: PDFFile) -> List[PageImage]:
             xref = img[0]
             base_image = doc.extract_image(xref)
             image_bytes = base_image["image"]
-            output.append(PageImage(content_type="image/png", data=image_bytes, page_num=page_num, img_num=img_index))
+            output.append(
+                PageImage(
+                    content_type="image/png",
+                    data=image_bytes,
+                    page_num=page_num,
+                    img_num=img_index,
+                )
+            )
 
     return output
 
@@ -81,6 +88,7 @@ class PageTable(BaseData):
     data: bytes
 
     page_num: int
+
 
 @extractor()
 def extract_tables(pdf_file: PDFFile) -> List[PageTable]:
@@ -99,25 +107,28 @@ def extract_tables(pdf_file: PDFFile) -> List[PageTable]:
 class TextChunk(BaseData):
     chunk: str
 
+
 class ChunkParams(BaseModel):
     chunk_size: int
 
+
 @extractor(description="Make chunks")
-def make_chunks(page_text: PageText, params: ChunkParams= None) -> List[TextChunk]:
+def make_chunks(page_text: PageText, params: ChunkParams = None) -> List[TextChunk]:
     text = page_text.text
-    chunk_len = params['chunk_size']
+    chunk_len = params["chunk_size"]
     chunk_size = len(text) // chunk_len
     chunks = []
-    for i in range(chunk_size+1):
-        s = i*chunk_len
-        if len(text[s:s+chunk_len]) > 0:  # sentence bert crashes for empty input
-            chunks.append(TextChunk(chunk=text[s:s+chunk_len]))
+    for i in range(chunk_size + 1):
+        s = i * chunk_len
+        if len(text[s : s + chunk_len]) > 0:  # sentence bert crashes for empty input
+            chunks.append(TextChunk(chunk=text[s : s + chunk_len]))
 
     return chunks
 
 
 class Embedding(BaseData):
     embedding: List[float]
+
 
 class EmbeddingExtractor(Extractor):
     name = "temp/embedding"
@@ -127,9 +138,9 @@ class EmbeddingExtractor(Extractor):
 
     def __init__(self):
         super().__init__()
-        self.model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-    def extract(self, input: TextChunk, params: BaseModel=None) -> List[Embedding]:
+    def extract(self, input: TextChunk, params: BaseModel = None) -> List[Embedding]:
         text = input.chunk
 
         embeddings = self.model.encode([text])
@@ -144,7 +155,12 @@ class EmbeddingExtractor(Extractor):
 
 
 if __name__ == "__main__":
-    g = Graph("Extract pages, tables, images from pdf", input=str, start_node=download_pdf, run_local=True)
+    g = Graph(
+        "Extract pages, tables, images from pdf",
+        input=str,
+        start_node=download_pdf,
+        run_local=True,
+    )
 
     g.add_edge(download_pdf, extract_page_text)
     g.add_edge(download_pdf, extract_images)
@@ -163,10 +179,10 @@ if __name__ == "__main__":
     print(f"number of tables {len(g.get_result(extract_tables))}")
     print(f"number of embeddings {len(g.get_result(EmbeddingExtractor))}")
 
-    print('\n---- Text output')
+    print("\n---- Text output")
     print(g.get_result(extract_page_text)[3])
-    print('---- /Text output\n')
+    print("---- /Text output\n")
 
-    print('\n---- Embedding output')
+    print("\n---- Embedding output")
     print(g.get_result(EmbeddingExtractor)[3])
-    print('---- /Embedding output\n')
+    print("---- /Embedding output\n")

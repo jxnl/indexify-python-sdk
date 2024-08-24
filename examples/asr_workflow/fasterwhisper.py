@@ -1,9 +1,11 @@
-from pydantic import BaseModel
-from typing import List
-from indexify.extractor_sdk import Extractor, Content
-import json
 import io
+import json
+from typing import List
+
 from faster_whisper import WhisperModel
+from pydantic import BaseModel
+
+from indexify.extractor_sdk import Content, Extractor
 
 
 class InputParams(BaseModel):

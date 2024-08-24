@@ -1,16 +1,17 @@
 import argparse
 import time
 
-from indexify import (
-    AIndex,
-    ARepository,
-    AMemory,
-    TextChunk,
-    DEFAULT_SERVICE_URL,
-    wait_until,
-    Message,
-)
 from datasets import load_dataset
+
+from indexify import (
+    DEFAULT_SERVICE_URL,
+    AIndex,
+    AMemory,
+    ARepository,
+    Message,
+    TextChunk,
+    wait_until,
+)
 
 
 class BulkUploadRepository:

@@ -1,4 +1,5 @@
 from openai import OpenAI
+
 from indexify import IndexifyClient
 
 client = IndexifyClient()

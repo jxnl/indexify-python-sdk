@@ -1,17 +1,29 @@
-from typing import Union, Optional, List, Type, Tuple, Callable, get_type_hints, Dict
 import inspect
-from pydantic import BaseModel, Field
-from abc import ABC, abstractmethod
-from .data import BaseData, Content, Feature
 import json
 import os
+from abc import ABC, abstractmethod
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+    get_type_hints,
+)
+
 import requests
+from pydantic import BaseModel, Field
+
+from .data import BaseData, Content, Feature
 
 
 class EmbeddingSchema(BaseModel):
     dim: int
     distance: Optional[str] = "cosine"
     database_url: Optional[str] = None
+
 
 class ExtractorMetadata(BaseModel):
     name: str
@@ -42,7 +54,7 @@ class Extractor(ABC):
     input_mime_types = ["text/plain"]
 
     embedding_indexes: Dict[str, EmbeddingSchema] = {}
-    
+
     @abstractmethod
     def extract(
         self, input: Type[BaseModel], params: Type[BaseModel] = None
@@ -186,7 +198,7 @@ def extractor(
 
             class DecoratedFn(Extractor):
                 @classmethod
-                def extract(cls, input: Type[BaseData], params: Type[BaseModel]=None) -> List[Union[Type[BaseModel], Type[Feature]]]:  # type: ignore
+                def extract(cls, input: Type[BaseData], params: Type[BaseModel] = None) -> List[Union[Type[BaseModel], Type[Feature]]]:  # type: ignore
                     # TODO we can force all the functions to take in a parms object
                     # or check if someone adds a params
                     if params is None:

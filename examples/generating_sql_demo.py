@@ -1,10 +1,12 @@
-from indexify import IndexifyClient
+from pprint import pformat
+
 from indexify_langchain import IndexifyRetriever
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import ChatOpenAI
-from pprint import pformat
+
+from indexify import IndexifyClient
 
 client = IndexifyClient()
 

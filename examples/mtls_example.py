@@ -1,5 +1,6 @@
-from indexify import IndexifyClient
 import os
+
+from indexify import IndexifyClient
 
 
 def run_example():

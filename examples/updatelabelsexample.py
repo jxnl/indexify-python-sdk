@@ -1,5 +1,6 @@
-from indexify import IndexifyClient, ExtractionGraph
 import time
+
+from indexify import ExtractionGraph, IndexifyClient
 
 client = IndexifyClient()
 extraction_graph_spec = """

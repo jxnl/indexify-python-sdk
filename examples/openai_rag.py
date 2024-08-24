@@ -1,4 +1,4 @@
-from indexify import IndexifyClient, ExtractionGraph
+from indexify import ExtractionGraph, IndexifyClient
 
 
 def get_context(question: str, index: str, top_k=3):

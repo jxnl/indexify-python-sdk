@@ -1,6 +1,8 @@
 import os
-import httpx
 from typing import List
+
+import httpx
+
 from .data import Content, Feature
 
 

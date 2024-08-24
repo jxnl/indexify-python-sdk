@@ -1,5 +1,6 @@
-from indexify import IndexifyClient, ExtractionGraph
 from langchain_community.document_loaders import WikipediaLoader
+
+from indexify import ExtractionGraph, IndexifyClient
 
 client = IndexifyClient()
 

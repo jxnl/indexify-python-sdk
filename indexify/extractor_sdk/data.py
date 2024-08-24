@@ -1,15 +1,7 @@
-from typing import (
-    Any,
-    List,
-    Optional,
-    Literal,
-    Dict,
-    Type,
-    cast,
-    Mapping,
-)
-from pydantic import BaseModel, Json, Field
 import json
+from typing import Any, Dict, List, Literal, Mapping, Optional, Type, cast
+
+from pydantic import BaseModel, Field, Json
 from typing_extensions import Annotated, Doc
 
 

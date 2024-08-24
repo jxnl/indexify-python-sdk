@@ -1,15 +1,13 @@
-from .client import IndexifyClient
-from .extraction_policy import ExtractionGraph
+from . import data_loaders, extractor_sdk
 from .client import (
-    IndexifyClient,
     Document,
+    IndexifyClient,
     generate_hash_from_string,
     generate_unique_hex_id,
 )
-from . import extractor_sdk
-from .settings import DEFAULT_SERVICE_URL
-from . import data_loaders
+from .extraction_policy import ExtractionGraph
 from .graph import Graph
+from .settings import DEFAULT_SERVICE_URL
 
 __all__ = [
     "data_loaders",

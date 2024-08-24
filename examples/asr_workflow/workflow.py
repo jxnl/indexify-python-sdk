@@ -1,14 +1,13 @@
-from indexify.extractor_sdk.data import Feature
+import json
+import subprocess
+from typing import List
+
+from pydantic import BaseModel, Field
+
+from indexify.extractor_sdk.data import BaseData, Feature
 from indexify.extractor_sdk.extractor import extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
-from indexify.extractor_sdk.data import BaseData
-
-from typing import List
-from pydantic import BaseModel, Field
-
-import json
-import subprocess
 
 
 class YoutubeURL(BaseData):
@@ -123,7 +122,9 @@ if __name__ == "__main__":
     g = create_graph()
 
     runner = LocalRunner()
-    runner.run(g, wf_input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))
+    runner.run(
+        g, wf_input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s")
+    )
 
     print(f"--- wf output: {runner.get_result(classify_text_feature)}")
     print(f"--- wf output: {runner.get_result(summarize_job_interview)}")

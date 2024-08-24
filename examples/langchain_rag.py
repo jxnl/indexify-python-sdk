@@ -29,8 +29,9 @@ prompt = ChatPromptTemplate.from_template(template)
 
 # Ask llm question with retriever context
 from langchain_openai import ChatOpenAI
-from langchain.schema.runnable import RunnablePassthrough
+
 from langchain.schema.output_parser import StrOutputParser
+from langchain.schema.runnable import RunnablePassthrough
 
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 

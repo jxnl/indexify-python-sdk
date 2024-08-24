@@ -1,9 +1,9 @@
 from abc import ABC
+from typing import Any, Union
 
 from indexify.extractor_sdk.data import BaseData
-from indexify.extractor_sdk.extractor import extractor, Extractor
+from indexify.extractor_sdk.extractor import Extractor, extractor
 
-from typing import Any, Union
 
 class Runner(ABC):
     def run(self, g, wf_input: BaseData):
