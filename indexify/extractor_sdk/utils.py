@@ -5,16 +5,11 @@ from .data import Content, Feature
 
 
 class SampleExtractorData:
-    def _download_file(self, url, filename):
-        if os.path.exists(filename):
-            # file exists skip
-            return
+    def _download_file(self, url):
         try:
-            with httpx.get(url, stream=True) as r:
-                r.raise_for_status()  # Raises an HTTPError if the response status code is 4XX/5XX
-                with open(filename, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
+            resp = httpx.get(url, follow_redirects=True)
+            resp.raise_for_status()
+            return resp.content
         except httpx.exceptions.RequestException as e:
             print(f"Error downloading the file: {e}")
 
@@ -55,13 +50,10 @@ class SampleExtractorData:
         return Content(content_type="image/jpg", data=f.read(), features=features)
 
     def sample_invoice_pdf(self, features: List[Feature] = []) -> Content:
-        file_name = "sample.pdf"
-        self._download_file(
+        data = self._download_file(
             "https://extractor-files.diptanu-6d5.workers.dev/invoice-example.pdf",
-            file_name,
         )
-        f = open(file_name, "rb")
-        return Content(content_type="application/pdf", data=f.read(), features=features)
+        return Content(content_type="application/pdf", data=data, features=features)
 
     def sample_image_based_pdf(self, features: List[Feature] = []) -> Content:
         file_name = "sample.pdf"
