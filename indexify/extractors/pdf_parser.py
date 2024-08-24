@@ -68,7 +68,6 @@ class PDFParser:
                         )
                     )
             figures = parsed_page.get_annotation(category_names=dd.LayoutType.FIGURE)
-            print(len(figures))
             for figure in figures:
                 image_bytes = dd.viz_handler.encode(figure.viz())
                 fragments.append(
@@ -80,7 +79,6 @@ class PDFParser:
                 )
 
             tables = parsed_page.get_annotation(category_names=dd.LayoutType.TABLE)
-            print(len(tables))
             for table in tables:
                 fragments.append(
                     PageFragment(
