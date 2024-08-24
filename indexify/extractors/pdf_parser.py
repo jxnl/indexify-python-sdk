@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 class PageFragmentType(str, Enum):
     TEXT = "text"
-    FIGURE = "image"
+    FIGURE = "figure"
     TABLE = "table"
 
 

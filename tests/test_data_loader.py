@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import unittest
 
-from indexify.data_loaders import FileMetadata, LocalDirectoryLoader
+from indexify.data_loaders import LocalDirectoryLoader
 
 
 class TestLocalDirectoryLoader(unittest.TestCase):
