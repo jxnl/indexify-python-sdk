@@ -1,8 +1,9 @@
-import unittest
 import os
 import shutil
 import tempfile
-from indexify.data_loaders import LocalDirectoryLoader, FileMetadata
+import unittest
+
+from indexify.data_loaders import FileMetadata, LocalDirectoryLoader
 
 
 class TestLocalDirectoryLoader(unittest.TestCase):

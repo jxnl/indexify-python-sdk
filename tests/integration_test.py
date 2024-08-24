@@ -1,10 +1,12 @@
-from indexify.client import IndexifyClient, Document, ExtractionGraph
-from indexify.extraction_policy import ExtractionPolicy
-import time
 import os
+import time
 import unittest
 import uuid
+
 from httpx import ConnectError
+
+from indexify.client import Document, ExtractionGraph, IndexifyClient
+from indexify.extraction_policy import ExtractionPolicy
 
 
 class TestIntegrationTest(unittest.TestCase):

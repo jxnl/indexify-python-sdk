@@ -1,7 +1,8 @@
-from langchain_community.document_loaders import TextLoader
-from langchain.text_splitter import CharacterTextSplitter
-import requests
 import dotenv
+import requests
+from langchain_community.document_loaders import TextLoader
+
+from langchain.text_splitter import CharacterTextSplitter
 
 # specify your OPENAI_API_KEY in .env file
 dotenv.load_dotenv()
@@ -24,7 +25,7 @@ chunks = text_splitter.split_documents(documents)
 
 
 # initialize indexify client
-from indexify.client import IndexifyClient, Document
+from indexify.client import Document, IndexifyClient
 
 client = IndexifyClient()
 
@@ -66,8 +67,9 @@ prompt = ChatPromptTemplate.from_template(template)
 
 # Ask llm question with retriever context
 from langchain_openai import ChatOpenAI
-from langchain.schema.runnable import RunnablePassthrough
+
 from langchain.schema.output_parser import StrOutputParser
+from langchain.schema.runnable import RunnablePassthrough
 
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
