@@ -1,20 +1,22 @@
+from typing import List
+import io
 import json
 from typing import List
 
 import fitz
 import httpx
-import pymupdf
-from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
-from tt_module import get_tables
+import httpx
 
-from indexify.extractor_sdk.data import BaseData, PDFFile
-from indexify.extractor_sdk.extractor import Extractor, extractor
+from indexify.extractor_sdk.extractor import extractor, Extractor
+from indexify.extractor_sdk.data import BaseData, Feature, File
+from indexify.extractors.pdf_parser import PDFParser, Page
+
+from sentence_transformers import SentenceTransformer, util
+
 from indexify.graph import Graph
 
-
 @extractor()
-def download_pdf(url: str) -> PDFFile:
+def download_pdf(url: str) -> File:
     """
     Download pdf from url
     """
@@ -24,31 +26,23 @@ def download_pdf(url: str) -> PDFFile:
 
     resp = httpx.request(url=url, method="GET")
 
-    with open(filename, "rb") as f:
-        output = PDFFile(data=resp.content, mime_type="application/pdf")
+    with open(filename, 'rb') as f:
+        output = File(data=resp.content, mime_type="application/pdf")
 
     return output
 
-
-class PageText(BaseData):
-    text: str
-
-    page_num: int
+class Document(BaseModel):
+    pages: List[Page]
 
 
 @extractor()
-def extract_page_text(pdf_file: PDFFile) -> List[PageText]:
+def parse_pdf(file: File) -> Document:
     """
-    Extract page text from pdf
+    Parse pdf file and returns pages:
     """
-    output = []
-    with pymupdf.open("pdf", pdf_file.data) as doc:
-        for page_num, page in enumerate(doc):
-            text = page.get_text()
-            output.append(PageText(text=text, page_num=page_num))
-
-    return output
-
+    parser = PDFParser(file.data)
+    pages: List[Page] = parser.parse()
+    return Document(pages=pages)
 
 class PageImage(BaseData):
     content_type: str
@@ -106,32 +100,47 @@ def extract_tables(pdf_file: PDFFile) -> List[PageTable]:
 
 class TextChunk(BaseData):
     chunk: str
-
+    metadata: dict = {}
 
 class ChunkParams(BaseModel):
     chunk_size: int
 
 
-@extractor(description="Make chunks")
-def make_chunks(page_text: PageText, params: ChunkParams = None) -> List[TextChunk]:
-    text = page_text.text
-    chunk_len = params["chunk_size"]
-    chunk_size = len(text) // chunk_len
-    chunks = []
-    for i in range(chunk_size + 1):
-        s = i * chunk_len
-        if len(text[s : s + chunk_len]) > 0:  # sentence bert crashes for empty input
-            chunks.append(TextChunk(chunk=text[s : s + chunk_len]))
+@extractor()
+def extract_chunks(document: Document, chunk_size: int, overlap: int) -> List[TextChunk]:
+    """
+    Extract chunks from document
+    """
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size,overlap=overlap)
+    chunks: List[TextChunk] = []
+    for page in document.pages:
+        for fragment in page.fragments:
+            if fragment.fragment_type == "text":
+                texts = text_splitter.split_text(fragment.text)
+                for text in texts:
+                    chunks.append(TextChunk(chunk=text, metadata={"page_number": page.number}))
 
     return chunks
 
+class ImageDescription(BaseModel):
+    description: str
+    page_number: int
+    figure_number: int
 
+@extractor()
+def describe_images(document: Document) -> List[ImageDescription]:
+    """
+    Describe images in document
+    """
+    descriptions = []
+    return descriptions
 class Embedding(BaseData):
     embedding: List[float]
-
+    embedding_type: str
 
 class EmbeddingExtractor(Extractor):
-    name = "temp/embedding"
+    name = "text-embedding"
     description = "Extractor class that captures an embedding model"
     system_dependencies = []
     input_mime_types = ["text"]
@@ -140,20 +149,54 @@ class EmbeddingExtractor(Extractor):
         super().__init__()
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-    def extract(self, input: TextChunk, params: BaseModel = None) -> List[Embedding]:
-        text = input.chunk
+    def extract(self, input: TextChunk, params: BaseModel=None) -> Embedding:
+        embeddings = self.model.encode(input.chunk)
+        return Embedding(embedding=embeddings, embedding_type="text")
+    
+class ImageEmbedding(Extractor):
+    name = "image-embedding"
+    description = "Extractor class that captures an embedding model"
+    system_dependencies = []
+    input_mime_types = ["text"]
 
-        embeddings = self.model.encode([text])
+    def __init__(self):
+        super().__init__()
+        self.model = SentenceTransformer('clip-ViT-B-32')
 
-        embeddings = [Embedding(embedding=i) for i in embeddings]
+    def extract(self, document: Document) -> List[Embedding]:
+        from PIL import Image
+        embedding = []
+        for page in document.pages:
+            for fragment in page.fragments:
+                if fragment.fragment_type == "image":
+                    image = fragment.image
+                    img_emb = self.model.encode(Image.open(io.BytesArray(image.data)))
+                    embedding.append(Embedding(embedding=img_emb, embedding_type="image"))  
+        return embedding
+    
+class LancdDBWriter(Extractor):
+    def __init__(self):
+        super().__init__()
+        import lancedb
+        import pyarrow as pa
+        self._client = lancedb.connect("vectordb.lance")
+        text_emb_schema = pa.schema([pa.field("text_embeddings", pa.list_(pa.float32(), list_size=384)),
+                            pa.field("document_id", pa.string()),
+                            pa.field("page_number", pa.int32()),])
+        
+        img_emb_schema = pa.schema([pa.field("img_embeddings", pa.list_(pa.float32(), list_size=384)),
+                            pa.field("document_id", pa.string()),
+                            pa.field("page_number", pa.int32()),])
+        self._text_emb_table = self._client.create_table("text_embeddings", text_emb_schema)
+        self._img_emb_table = self._client.create_table("img_embeddings", img_emb_schema)
 
-        return embeddings
-
-    @classmethod
-    def sample_input(cls) -> TextChunk:
-        return TextChunk(chunk="this is some sample chunked text")
-
-
+    def extract(self, embeddings: List[Embedding]) -> List[Feature | BaseModel]:
+        for emb in embeddings:
+            if emb.embedding_type == "text":
+                pass
+            elif emb.embedding_type == "image":
+                pass
+    
 if __name__ == "__main__":
     g = Graph(
         "Extract pages, tables, images from pdf",
@@ -162,27 +205,30 @@ if __name__ == "__main__":
         run_local=True,
     )
 
-    g.add_edge(download_pdf, extract_page_text)
-    g.add_edge(download_pdf, extract_images)
-    g.add_edge(download_pdf, extract_tables)
+    text_embedding = TextEmbedding()
+    clip_embedding = ImageEmbedding()
+    write_to_vectordb = LancdDBWriter()
 
-    g.add_edge(extract_page_text, make_chunks)
-    g.add_edge(make_chunks, EmbeddingExtractor)
-
-    g.add_param(make_chunks, {"chunk_size": 2000})
+    g.add_edge(download_pdf, parse_pdf)
+    g.add_edge(parse_pdf, extract_chunks.par)
+    g.add_edge(parse_pdf, describe_images)
+    g.add_edge(extract_chunks, text_embedding)
+    g.add_edge(describe_images, clip_embedding)
+    g.add_edge(text_embedding, write_to_vectordb)
+    g.add_edge(clip_embedding, write_to_vectordb)
 
     url = "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
     g.run(wf_input=url, local=True)
 
-    print(f"number of pages {len(g.get_result(extract_page_text))}")
-    print(f"number of images {len(g.get_result(extract_images))}")
-    print(f"number of tables {len(g.get_result(extract_tables))}")
-    print(f"number of embeddings {len(g.get_result(EmbeddingExtractor))}")
+    #print(f"number of pages {len(g.get_result(extract_page_text))}")
+    #print(f"number of images {len(g.get_result(extract_images))}")
+    #print(f"number of tables {len(g.get_result(extract_tables))}")
+    #print(f"number of embeddings {len(g.get_result(EmbeddingExtractor))}")
 
-    print("\n---- Text output")
-    print(g.get_result(extract_page_text)[3])
-    print("---- /Text output\n")
+    print('\n---- Text output')
+    #print(g.get_result(extract_page_text)[3])
+    print('---- /Text output\n')
 
-    print("\n---- Embedding output")
-    print(g.get_result(EmbeddingExtractor)[3])
-    print("---- /Embedding output\n")
+    print('\n---- Embedding output')
+    #print(g.get_result(EmbeddingExtractor)[3])
+    print('---- /Embedding output\n')

@@ -6,6 +6,7 @@ from typing_extensions import Annotated, Doc
 
 
 class BaseData(BaseModel):
+    content_id: str
     meta: Mapping[str, Type[BaseModel]] = {}
 
     def get_features(self) -> List[Type[BaseModel]]:
