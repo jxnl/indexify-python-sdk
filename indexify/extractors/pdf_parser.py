@@ -2,7 +2,6 @@ import tempfile
 from enum import Enum
 from typing import List, Optional
 
-import deepdoctection as dd
 from pydantic import BaseModel
 
 
@@ -45,6 +44,7 @@ class PDFParser:
         self._data = data
 
     def parse(self) -> List[Page]:
+        import deepdoctection as dd
         analyzer = dd.get_dd_analyzer()
         parsed_pages = []
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
