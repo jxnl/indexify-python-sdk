@@ -40,12 +40,14 @@ class Page(BaseModel):
 
 
 class PDFParser:
-    def __init__(self, data: bytes, language: Optional[str] = "en"):
+    def __init__(self, data: bytes, language: Optional[str] = "eng"):
         self._data = data
-
+        self._language = language
     def parse(self) -> List[Page]:
         import deepdoctection as dd
-        analyzer = dd.get_dd_analyzer()
+        analyzer = dd.get_dd_analyzer(
+            config_overwrite=[f"LANGUAGE='{self._language}'"]
+        )
         parsed_pages = []
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
             f.write(self._data)
