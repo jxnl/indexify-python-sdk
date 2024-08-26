@@ -1,5 +1,7 @@
-from indexify.extractor_sdk.data import BaseData
 import unittest
+
+from indexify.extractor_sdk.data import BaseData
+
 
 class TestBaseData(unittest.TestCase):
     def test_md5_checksum(self):
@@ -10,4 +12,3 @@ class TestBaseData(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

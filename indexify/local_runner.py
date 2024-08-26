@@ -2,10 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, Optional, Type, Union
 
 from indexify.extractor_sdk.data import BaseData
-from indexify.extractor_sdk.extractor import (
-    Extractor,
-    extractor,
-)
+from indexify.extractor_sdk.extractor import Extractor, extractor
 from indexify.extractor_sdk.local_cache import CacheAwareExtractorWrapper
 from indexify.graph import Graph
 from indexify.runner import Runner
@@ -31,7 +28,7 @@ class LocalRunner(Runner):
             ),
         )
 
-        res = extractor_construct.extract(node_name, _input.payload)
+        res = extractor_construct.extract(node_name, _input)
         print(f"---- Finished node {node_name}")
         self.results[node_name].extend(res)
 

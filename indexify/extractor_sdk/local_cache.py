@@ -7,9 +7,7 @@ from typing_extensions import get_args, get_origin
 
 from .data import BaseData
 from .extractor import ExtractorWrapper
-from .output_serializer import PayloadSerializer
-
-CachedOutput = RootModel[List[BaseData]]
+from .output_serializer import CachedOutput, PayloadSerializer
 
 
 def get_list_inner_type(type_hint: Type) -> Union[Type, None]:
@@ -59,25 +57,27 @@ class CacheAwareExtractorWrapper:
         self.set(self._graph, node_name, input, output)
         return output
 
-    def get(
-        self, graph: str, node_name: str, input: BaseData
-    ) -> List[BaseData]:
+    def get(self, graph: str, node_name: str, input: BaseData) -> List[BaseData]:
         dir_path = os.path.join(self._cache_dir, graph)
-        file_path = os.path.join(dir_path, f"{node_name}_{input.md5_payload_checksum}.json")
+        file_path = os.path.join(
+            dir_path, f"{node_name}_{input.md5_payload_checksum}.json"
+        )
 
         if os.path.exists(file_path):
             with open(file_path, "r") as f:
+                output_json = f.read()
+                serializer = PayloadSerializer()
                 output_model = self._output_model
                 if get_origin(self._output_model) is list:
                     output_model = get_list_inner_type(self._output_model)
 
                 class BaseData(BaseModel):
                     content_id: Optional[str] = None
+                    md5_payload_checksum: Optional[str] = None
                     payload: output_model
 
-                CachedOutput = RootModel[List[BaseData]]
-                output_json = f.read()
-                return CachedOutput.model_validate_json(output_json).root
+                output = serializer.deserialize(output_json, BaseData)
+                return output
         return None
 
     def set(

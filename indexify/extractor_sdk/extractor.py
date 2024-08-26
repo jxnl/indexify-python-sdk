@@ -29,6 +29,13 @@ class ExtractorMetadata(BaseModel):
     metadata_schemas: Optional[Dict]
 
 
+class PlacementConstraints(BaseModel):
+    min_python_version: Optional[str] = "3.9"
+    max_python_version: Optional[str] = None
+    platform: Optional[str] = None
+    image_name: Optional[str] = None
+
+
 class Extractor(ABC):
     name: str = ""
     version: str = "0.0.0"
@@ -38,6 +45,7 @@ class Extractor(ABC):
     description: str = ""
     input_mime_types = ["text/plain"]
     embedding_indexes: Dict[str, EmbeddingSchema] = {}
+    placement_constraints: Optional[PlacementConstraints] = None
 
     @abstractmethod
     def extract(self, *args, **kwargs) -> Union[List[Any], Any]:

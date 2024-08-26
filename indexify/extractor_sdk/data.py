@@ -1,10 +1,11 @@
-import json
-from typing import Any, Dict, List, Literal, Mapping, Optional, Type, cast
 import hashlib
-
-from pydantic import BaseModel, Field, Json, create_model, Base64Bytes
-from typing_extensions import Annotated, Doc
+import json
 import pickle
+from typing import Any, Dict, List, Literal, Mapping, Optional, Type, cast
+
+from pydantic import Base64Bytes, BaseModel, Field, Json, create_model
+from typing_extensions import Annotated, Doc
+
 
 class BaseData(BaseModel):
     content_id: Optional[str] = None
@@ -12,11 +13,13 @@ class BaseData(BaseModel):
     md5_payload_checksum: Optional[str] = None
 
     def model_post_init(self, __context):
+        print(f"self: {self}")
         hash = hashlib.md5()
         for k, v in self.model_dump().items():
             hash.update(k.encode())
             hash.update(pickle.dumps(v))
         self.md5_payload_checksum = hash.hexdigest()
+        print(f"self: {self}")
 
     @staticmethod
     def from_data(**kwargs) -> "BaseData":
@@ -106,5 +109,5 @@ class ContentMetadata(BaseModel):
 
 
 class File(BaseModel):
-    data: Base64Bytes
+    data: bytes
     mime_type: str
