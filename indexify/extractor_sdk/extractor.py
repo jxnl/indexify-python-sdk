@@ -5,7 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Type, Union
 from pydantic import BaseModel
 from typing_extensions import get_type_hints
 
-from .data import BaseData, DynamicModel
+from .data import BaseData
 
 
 class EmbeddingSchema(BaseModel):
@@ -94,7 +94,8 @@ class ExtractorWrapper:
         return_type = type_hints.get("return", Any)
         return return_type
 
-    def extract(self, input: Type[BaseModel]) -> List[BaseData]:
+    def extract(self, input: BaseData) -> List[BaseData]:
+        input = input.payload
         if str(type(input)) == "<class 'indexify.extractor_sdk.data.DynamicModel'>":
             extracted_data = self.extractor.extract(**input.model_dump())
         else:

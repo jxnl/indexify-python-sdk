@@ -97,10 +97,9 @@ class TextEmbeddingExtractor(Extractor):
         from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
-    def extract(self, input: TextChunk) -> TextChunk:
+    def extract(self, input: TextChunk) -> List[float]:
         embeddings = self.model.encode(input.chunk)
-        input.embeddings = embeddings.tolist()
-        return input
+        return embeddings.tolist()
 
 
 class ImageWithEmbedding(BaseModel):
@@ -140,6 +139,7 @@ class ImageEmbeddingExtractor(Extractor):
 
 
 class LancedDBWriter(Extractor):
+    python_dependencies = ["lancedb", "pyarrow"]
     def __init__(self):
         super().__init__()
         import lancedb
@@ -188,6 +188,13 @@ class LancedDBWriter(Extractor):
                 }
             )
 
+def build_graph():
+    data: File = download_pdf(url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf")
+    document = parse_pdf(data)
+    chunks = extract_chunks(document, 1000, 200)
+    text_embeddings = text_embedding(chunks)
+    image_embeddings = clip_embedding(document)
+    lancedb_writer(text_embeddings + image_embeddings)
 
 if __name__ == "__main__":
     g = Graph(
@@ -199,14 +206,24 @@ if __name__ == "__main__":
     text_embedding = TextEmbeddingExtractor()
     write_to_vector_db = LancedDBWriter()
 
+    # Parse the PDF which was downloaded
     g.add_edge(download_pdf, parse_pdf)
+
     g.add_edge(parse_pdf, extract_chunks)
+
     g.add_edge(parse_pdf, describe_images)
-#    g.add_edge(parse_pdf, clip_embedding)
-#    g.add_edge(extract_chunks, text_embedding)
-#    g.add_edge(describe_images, text_embedding)
-#    g.add_edge(text_embedding, write_to_vector_db)
-#    g.add_edge(clip_embedding, write_to_vector_db)
+    # Embed all the images in the PDF 
+    g.add_edge(parse_pdf, clip_embedding)
+
+    # Embed all the text chunks in the PDF
+    g.add_edge(extract_chunks, text_embedding)
+
+    # Describe all the images in the PDF
+    g.add_edge(describe_images, text_embedding)
+
+    # Write all the embeddings to the vector database
+    g.add_edge(text_embedding, write_to_vector_db)
+    g.add_edge(clip_embedding, write_to_vector_db)
 
     local_runner = LocalRunner()
     local_runner.run(g, url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf")

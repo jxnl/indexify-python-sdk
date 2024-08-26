@@ -1,14 +1,9 @@
 import unittest
 from typing import List
 
-from indexify.extractor_sdk.data import BaseModel
+from indexify.extractor_sdk.data import BaseData
 from indexify.extractor_sdk.extractor import ExtractorWrapper, extractor
 from indexify.extractor_sdk.local_cache import CacheAwareExtractorWrapper
-
-
-class InputModel(BaseModel):
-    url: str
-
 
 class TestExtractorWrapper(unittest.TestCase):
     def test_basic_features(self):
@@ -20,7 +15,7 @@ class TestExtractorWrapper(unittest.TestCase):
             return "hello"
 
         extractor_wrapper = ExtractorWrapper(extractor_a)
-        result = extractor_wrapper.extract(InputModel(url="foo"))
+        result = extractor_wrapper.extract(BaseData.from_data(url="foo"))
         self.assertEqual(result[0].payload, "hello")
 
     def test_get_output_model(self):
@@ -62,7 +57,7 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             "extractor_cache", "test_graph", extractor_wrapper
         )
         result = cache_aware_extractor_wrapper.extract(
-            "extractor_a", InputModel(url="foo")
+            "extractor_a", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload, "hello")
 
@@ -79,7 +74,7 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             "extractor_cache", "test_graph", extractor_wrapper
         )
         result = cache_aware_extractor_wrapper.extract(
-            "extractor_b", InputModel(url="foo")
+            "extractor_b", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload, "hello")
         self.assertEqual(result[1].payload, "world")
