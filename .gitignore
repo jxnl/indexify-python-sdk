@@ -1,4 +1,6 @@
 .pytest_cache
+extractor_cache
+indexify_local_runner_cache/
 __pycache__
 ve*
 .venv

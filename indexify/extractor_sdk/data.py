@@ -1,19 +1,23 @@
 import json
 from typing import Any, Dict, List, Literal, Mapping, Optional, Type, cast
 
-from pydantic import BaseModel, Field, Json
+from pydantic import BaseModel, Field, Json, create_model
 from typing_extensions import Annotated, Doc
 
 
+class DynamicModel(BaseModel):
+    pass
+
+
 class BaseData(BaseModel):
-    content_id: str
-    meta: Mapping[str, Type[BaseModel]] = {}
+    content_id: Optional[str] = None
+    payload: Optional[Any] = None
 
-    def get_features(self) -> List[Type[BaseModel]]:
-        return self.meta
-
-    def get_feature(self, name: str) -> Optional[Type[BaseModel]]:
-        return self.meta.get(name)
+    @staticmethod
+    def from_data(**kwargs) -> "BaseData":
+        fields = {key: (type(value), ...) for key, value in kwargs.items()}
+        data_model = create_model("DynamicModel", **fields)
+        return BaseData(payload=data_model(**kwargs))
 
 
 class Feature(BaseModel):
@@ -96,6 +100,6 @@ class ContentMetadata(BaseModel):
         )
 
 
-class File(BaseData):
+class File(BaseModel):
     data: bytes
     mime_type: str

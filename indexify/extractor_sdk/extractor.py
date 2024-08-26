@@ -1,23 +1,13 @@
 import inspect
-import json
-import os
 from abc import ABC, abstractmethod
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-    get_type_hints,
-)
+from functools import update_wrapper
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-import requests
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, create_model
+from typing_extensions import get_type_hints
 
-from .data import BaseData, Content, Feature
+from .data import BaseData, DynamicModel
+
 
 class EmbeddingSchema(BaseModel):
     dim: int
@@ -42,34 +32,21 @@ class ExtractorMetadata(BaseModel):
 
 class Extractor(ABC):
     name: str = ""
-
     version: str = "0.0.0"
-
     base_image: Optional[str] = None
-
     system_dependencies: List[str] = []
-
     python_dependencies: List[str] = []
-
     description: str = ""
-
     input_mime_types = ["text/plain"]
-
     embedding_indexes: Dict[str, EmbeddingSchema] = {}
 
     @abstractmethod
-    def extract(
-        self, *args, **kwargs) -> Union[List[Any], Any]:
-        """
-        Extracts information from the content. Returns a list of features to add
-        to the content.
-        It can also return a list of Content objects, which will be added to storage
-        and any extraction policies defined will be applied to them.
-        """
+    def extract(self, *args, **kwargs) -> Union[List[Any], Any]:
         pass
 
     def partial(self, **kwargs) -> Callable:
         from functools import partial
+
         return partial(self.extract, **kwargs)
 
 
@@ -77,46 +54,57 @@ def extractor(
     name: Optional[str] = None,
     description: Optional[str] = "",
     version: Optional[str] = "",
+    base_image: Optional[str] = "ubuntu:22.04",
     python_dependencies: Optional[List[str]] = None,
     system_dependencies: Optional[List[str]] = None,
     input_mime_types: Optional[List[str]] = None,
     embedding_indexes: Optional[Dict[str, EmbeddingSchema]] = None,
-    sample_content: Optional[Callable] = None,
 ):
-    args = locals()
-    del args["sample_content"]
-
     def construct(fn):
-        def wrapper():
-            description = fn.__doc__ or args.get("description", "")
+        args = locals().copy()
+        args["name"] = args["name"] if args.get("name", None) else fn.__name__
+        args["description"] = (
+            args["description"] if args.get("description", None) else fn.__doc__
+        )
 
-            if not args.get("name"):
-                args[
-                    "name"
-                ] = f"{inspect.getmodule(inspect.stack()[1][0]).__name__}:{fn.__name__}"
+        class IndexifyFnExtractor(Extractor):
+            def extract(self, *args, **kwargs) -> Union[List[Any], Any]:
+                return fn(*args, **kwargs)
 
-            class DecoratedFn(Extractor):
-                @classmethod
-                def extract(cls, input: Type[BaseData], params: Type[BaseModel] = None) -> List[Union[Type[BaseModel], Type[Feature]]]:  # type: ignore
-                    # TODO we can force all the functions to take in a parms object
-                    # or check if someone adds a params
-                    if params is None:
-                        return fn(input)
-                    else:
-                        return fn(input, params)
+            update_wrapper(extract, fn)
 
-                def sample_input(self) -> Content:
-                    return sample_content() if sample_content else self.sample_text()
+        for key, value in args.items():
+            if key != "fn" and key != "self":
+                setattr(IndexifyFnExtractor, key, value)
 
-            for key, val in args.items():
-                setattr(DecoratedFn, key, val)
-            DecoratedFn.description = description
-
-            return DecoratedFn
-
-        wrapper._extractor_name = fn.__name__
-        wrapper.name = fn.__name__
-
-        return wrapper
+        return IndexifyFnExtractor
 
     return construct
+
+
+class ExtractorWrapper:
+    def __init__(self, extractor: Extractor):
+        self.extractor: Extractor = extractor()
+
+    def get_output_model(self) -> List[Type[BaseModel]]:
+        if not isinstance(self.extractor, Extractor):
+            raise TypeError("Input must be an instance of Extractor")
+
+        extract_method = self.extractor.extract
+        type_hints = get_type_hints(extract_method)
+        return_type = type_hints.get("return", Any)
+        return return_type
+
+    def extract(self, input: Type[BaseModel]) -> List[BaseData]:
+        if isinstance(input, DynamicModel):
+            extracted_data = self.extractor.extract(**input.model_dump())
+        else:
+            extracted_data = self.extractor.extract(input)
+
+        if not isinstance(extracted_data, list):
+            return [BaseData(payload=extracted_data)]
+
+        outputs = []
+        for data in extracted_data:
+            outputs.append(BaseData(payload=data))
+        return outputs
