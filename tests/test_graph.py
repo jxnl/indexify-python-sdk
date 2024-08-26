@@ -14,6 +14,8 @@ def extractor_a(url: str) -> File:
     """
     Random description of extractor_a
     """
+    assert url == "https://example.com"
+    assert isinstance(url, str)
     return File(data=bytes(b"hello"), mime_type="text/plain")
 
 
@@ -52,8 +54,7 @@ class TestGraphA(unittest.TestCase):
         graph = create_graph_a()
 
         runner = LocalRunner()
-        wf_input = BaseData.from_data(url="https://example.com")
-        runner.run(graph, wf_input)
+        runner.run(graph, url="https://example.com")
 
 
 if __name__ == "__main__":

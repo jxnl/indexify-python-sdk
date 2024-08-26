@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Literal, Mapping, Optional, Type, cast
 
-from pydantic import BaseModel, Field, Json, create_model
+from pydantic import BaseModel, Field, Json, create_model, Base64Bytes
 from typing_extensions import Annotated, Doc
 
 
@@ -101,5 +101,5 @@ class ContentMetadata(BaseModel):
 
 
 class File(BaseModel):
-    data: bytes
+    data: Base64Bytes
     mime_type: str

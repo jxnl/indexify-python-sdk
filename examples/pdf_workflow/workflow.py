@@ -1,14 +1,15 @@
 import io
+import base64
 from typing import List, Optional, Union
 
 import httpx
-from pydantic import BaseModel
-from sentence_transformers import SentenceTransformer
+from pydantic import BaseModel, Base64Bytes
 
 from indexify.extractor_sdk.data import BaseData, Feature, File
 from indexify.extractor_sdk.extractor import Extractor, extractor
-from indexify.extractors.pdf_parser import Page, PDFParser
+from indexify.extractors.pdf_parser import Page, PDFParser, PageFragmentType
 from indexify.graph import Graph
+from indexify.local_runner import LocalRunner
 
 
 @extractor()
@@ -16,16 +17,9 @@ def download_pdf(url: str) -> File:
     """
     Download pdf from url
     """
-    import urllib.request
-
-    filename, _ = urllib.request.urlretrieve(url)
-
-    resp = httpx.request(url=url, method="GET")
-
-    with open(filename, "rb") as f:
-        output = File(data=resp.content, mime_type="application/pdf")
-
-    return output
+    resp = httpx.get(url=url, follow_redirects=True)
+    resp.raise_for_status()
+    return File(data=base64.b64encode(resp.content), mime_type="application/pdf")
 
 
 class Document(BaseModel):
@@ -37,7 +31,7 @@ def parse_pdf(file: File) -> Document:
     """
     Parse pdf file and returns pages:
     """
-    parser = PDFParser(file.data)
+    parser = PDFParser(base64.b64decode(file.data))
     pages: List[Page] = parser.parse()
     return Document(pages=pages)
 
@@ -67,7 +61,7 @@ def extract_chunks(
     chunks: List[TextChunk] = []
     for page in document.pages:
         for fragment in page.fragments:
-            if fragment.fragment_type == "text":
+            if fragment.fragment_type == PageFragmentType.TEXT:
                 texts = text_splitter.split_text(fragment.text)
                 for text in texts:
                     chunks.append(
@@ -100,11 +94,12 @@ class TextEmbeddingExtractor(Extractor):
 
     def __init__(self):
         super().__init__()
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     def extract(self, input: TextChunk) -> TextChunk:
         embeddings = self.model.encode(input.chunk)
-        input.embeddings = embeddings
+        input.embeddings = embeddings.tolist()
         return input
 
 
@@ -122,6 +117,7 @@ class ImageEmbeddingExtractor(Extractor):
 
     def __init__(self):
         super().__init__()
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer("clip-ViT-B-32")
 
     def extract(self, document: Document) -> List[ImageWithEmbedding]:
@@ -152,7 +148,7 @@ class LancedDBWriter(Extractor):
         self._client = lancedb.connect("vectordb.lance")
         text_emb_schema = pa.schema(
             [
-                pa.field("text_embeddings", pa.list_(pa.float32(), list_size=384)),
+                pa.field("vector", pa.list_(pa.float32(), list_size=384)),
                 pa.field("document_id", pa.string()),
                 pa.field("page_number", pa.int32()),
             ]
@@ -160,21 +156,21 @@ class LancedDBWriter(Extractor):
 
         img_emb_schema = pa.schema(
             [
-                pa.field("img_embeddings", pa.list_(pa.float32(), list_size=384)),
+                pa.field("vector", pa.list_(pa.float32(), list_size=512)),
                 pa.field("document_id", pa.string()),
                 pa.field("page_number", pa.int32()),
             ]
         )
         self._text_emb_table = self._client.create_table(
-            "text_embeddings", text_emb_schema
-        )
+                "text_embeddings", schema=text_emb_schema, exist_ok=True
+            )
         self._img_emb_table = self._client.create_table(
-            "img_embeddings", img_emb_schema
+                "img_embeddings", schema=img_emb_schema, exist_ok=True
         )
 
-    def write_embeddings(
+    def extract(
         self, input: Union[ImageWithEmbedding, TextChunk]
-    ) -> List[Feature | BaseModel]:
+    ) -> None:
         if type(input) == ImageWithEmbedding:
             self._img_emb_table.write(
                 {
@@ -196,9 +192,7 @@ class LancedDBWriter(Extractor):
 if __name__ == "__main__":
     g = Graph(
         "Extract pages, tables, images from pdf",
-        input=str,
         start_node=download_pdf,
-        run_local=True,
     )
 
     clip_embedding = ImageEmbeddingExtractor()
@@ -208,11 +202,11 @@ if __name__ == "__main__":
     g.add_edge(download_pdf, parse_pdf)
     g.add_edge(parse_pdf, extract_chunks)
     g.add_edge(parse_pdf, describe_images)
-    g.add_edge(parse_pdf, clip_embedding)
-    g.add_edge(extract_chunks, text_embedding)
-    g.add_edge(describe_images, text_embedding)
-    g.add_edge(text_embedding, write_to_vector_db)
-    g.add_edge(clip_embedding, write_to_vector_db)
+#    g.add_edge(parse_pdf, clip_embedding)
+#    g.add_edge(extract_chunks, text_embedding)
+#    g.add_edge(describe_images, text_embedding)
+#    g.add_edge(text_embedding, write_to_vector_db)
+#    g.add_edge(clip_embedding, write_to_vector_db)
 
-    url = "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
-    g.run(wf_input=url, local=True)
+    local_runner = LocalRunner()
+    local_runner.run(g, url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf")

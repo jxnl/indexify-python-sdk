@@ -1,9 +1,8 @@
-import inspect
 from abc import ABC, abstractmethod
 from functools import update_wrapper
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel
 from typing_extensions import get_type_hints
 
 from .data import BaseData, DynamicModel
@@ -96,7 +95,7 @@ class ExtractorWrapper:
         return return_type
 
     def extract(self, input: Type[BaseModel]) -> List[BaseData]:
-        if isinstance(input, DynamicModel):
+        if str(type(input)) == "<class 'indexify.extractor_sdk.data.DynamicModel'>":
             extracted_data = self.extractor.extract(**input.model_dump())
         else:
             extracted_data = self.extractor.extract(input)

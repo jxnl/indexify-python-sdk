@@ -1,15 +1,9 @@
-import hashlib
-import os
-import pickle
-import shutil
 from collections import defaultdict
-from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Type, Union
 
-from indexify.extractor_sdk.data import BaseData, Feature
+from indexify.extractor_sdk.data import BaseData
 from indexify.extractor_sdk.extractor import (
     Extractor,
-    ExtractorWrapper,
     extractor,
 )
 from indexify.extractor_sdk.local_cache import CacheAwareExtractorWrapper
@@ -23,7 +17,8 @@ class LocalRunner(Runner):
         self._extractors: Dict[str, CacheAwareExtractorWrapper] = {}
         self._cache_dir = cache_dir
 
-    def run(self, g: Graph, input: Type[BaseData]):
+    def run(self, g: Graph, **kwargs):
+        input = BaseData.from_data(**kwargs)
         self._run(g, input, g._start_node)
 
     def _run(self, g: Graph, _input: Type[BaseData], node_name: str):

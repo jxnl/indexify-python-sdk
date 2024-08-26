@@ -98,5 +98,6 @@ class CacheAwareExtractorWrapper:
 
         file_path = os.path.join(dir_path, f"{node_name_with_hex}.json")
         with open(file_path, "w") as f:
+            print(output)
             cached_output = CachedOutput(output).model_dump_json()
             f.write(cached_output)
