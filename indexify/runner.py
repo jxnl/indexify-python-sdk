@@ -6,7 +6,7 @@ from indexify.extractor_sdk.extractor import Extractor, extractor
 
 
 class Runner(ABC):
-    def run(self, g, wf_input: BaseData):
+    def run(self, g, wf_input: BaseData, start_node: str):
         raise NotImplementedError()
 
     def get_result(self, node: Union[extractor, Extractor]) -> Any:

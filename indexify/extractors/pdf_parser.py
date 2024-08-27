@@ -43,6 +43,7 @@ class PDFParser:
     def __init__(self, data: bytes, language: Optional[str] = "eng"):
         self._data = data
         self._language = language
+
     def parse(self) -> List[Page]:
         import deepdoctection as dd
         analyzer = dd.get_dd_analyzer(

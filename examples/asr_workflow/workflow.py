@@ -108,12 +108,12 @@ def create_graph():
     g.add_edge(
         classify_text_feature,
         summarize_job_interview,
-        prefilter_predicates="intent=job-interview",
+        pre_filter_predicates="intent=job-interview",
     )
     g.add_edge(
         classify_text_feature,
         summarize_sales_call,
-        prefilter_predicates="intent=sales-call",
+        pre_filter_predicates="intent=sales-call",
     )
     return g
 

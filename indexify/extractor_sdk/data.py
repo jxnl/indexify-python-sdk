@@ -1,18 +1,31 @@
+import hashlib
 import json
+import pickle
 from typing import Any, Dict, List, Literal, Mapping, Optional, Type, cast
 
-from pydantic import BaseModel, Field, Json
+from pydantic import Base64Bytes, BaseModel, Field, Json, create_model
 from typing_extensions import Annotated, Doc
 
 
 class BaseData(BaseModel):
-    meta: Mapping[str, Type[BaseModel]] = {}
+    content_id: Optional[str] = None
+    payload: Optional[Any] = None
+    md5_payload_checksum: Optional[str] = None
 
-    def get_features(self) -> List[Type[BaseModel]]:
-        return self.meta
+    def model_post_init(self, __context):
+        print(f"self: {self}")
+        hash = hashlib.md5()
+        for k, v in self.model_dump().items():
+            hash.update(k.encode())
+            hash.update(pickle.dumps(v))
+        self.md5_payload_checksum = hash.hexdigest()
+        print(f"self: {self}")
 
-    def get_feature(self, name: str) -> Optional[Type[BaseModel]]:
-        return self.meta.get(name)
+    @staticmethod
+    def from_data(**kwargs) -> "BaseData":
+        fields = {key: (type(value), ...) for key, value in kwargs.items()}
+        DynamicModel = create_model("DynamicModel", **fields)
+        return BaseData(payload=DynamicModel(**kwargs))
 
 
 class Feature(BaseModel):
@@ -95,6 +108,6 @@ class ContentMetadata(BaseModel):
         )
 
 
-class File(BaseData):
+class File(BaseModel):
     data: bytes
     mime_type: str
