@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from typing import List, Type
+from typing import List, Type, Union
 
 from pydantic import BaseModel, RootModel
 
@@ -38,7 +38,9 @@ class PayloadSerializer:
                 serialized_dict = {}
                 for field_name, field_value in payload.items():
                     if isinstance(field_value, bytes):
-                        serialized_dict[field_name] = self.bytes_serializer.serialize(field_value)
+                        serialized_dict[field_name] = self.bytes_serializer.serialize(
+                            field_value
+                        )
                     elif isinstance(field_value, (dict, list)):
                         serialized_dict[field_name] = serialize_payload(field_value)
                     else:
@@ -77,22 +79,45 @@ class PayloadSerializer:
                 for field_name, field_value in payload.items():
                     sub_field_type = field_type.model_fields[field_name].annotation
                     if sub_field_type is bytes:
-                        deserialized_dict[field_name] = self.bytes_serializer.deserialize(field_value)
-                    elif hasattr(sub_field_type, "__origin__") and issubclass(sub_field_type.__origin__, BaseModel):
-                        deserialized_dict[field_name] = deserialize_payload(field_value, sub_field_type)
-                    elif hasattr(sub_field_type, "__origin__") and sub_field_type.__origin__ is list:
-                        deserialized_dict[field_name] = deserialize_payload(field_value, sub_field_type)
+                        deserialized_dict[
+                            field_name
+                        ] = self.bytes_serializer.deserialize(field_value)
+                    elif hasattr(sub_field_type, "__origin__"):
+                        if sub_field_type.__origin__ is Union:
+                            inner_types = sub_field_type.__args__
+                            for inner_type in inner_types:
+                                if issubclass(inner_type, BaseModel):
+                                    deserialized_dict[field_name] = deserialize_payload(
+                                        field_value, inner_type
+                                    )
+                                    break
+                        elif issubclass(sub_field_type.__origin__, BaseModel):
+                            deserialized_dict[field_name] = deserialize_payload(
+                                field_value, sub_field_type
+                            )
+                        elif sub_field_type.__origin__ is list:
+                            deserialized_dict[field_name] = deserialize_payload(
+                                field_value, sub_field_type
+                            )
+                        deserialized_dict[field_name] = deserialize_payload(
+                            field_value, sub_field_type
+                        )
                     else:
                         deserialized_dict[field_name] = field_value
                         deserialized_dict[field_name] = field_value
+
                 return deserialized_dict
             elif isinstance(payload, list):
                 deserialized_list = []
                 for item in payload:
                     if field_type.__args__[0] is bytes:
-                        deserialized_list.append(self.bytes_serializer.deserialize(item))
+                        deserialized_list.append(
+                            self.bytes_serializer.deserialize(item)
+                        )
                     elif issubclass(field_type.__args__[0], BaseModel):
-                        deserialized_list.append(deserialize_payload(item, field_type.__args__[0]))
+                        deserialized_list.append(
+                            deserialize_payload(item, field_type.__args__[0])
+                        )
                     else:
                         deserialized_list.append(item)
                 return deserialized_list
@@ -106,6 +131,8 @@ class PayloadSerializer:
         outputs = []
         for base_data in data:
             payload_field_type = model_class.model_fields["payload"].annotation
-            base_data["payload"] = deserialize_payload(base_data["payload"], payload_field_type)
+            base_data["payload"] = deserialize_payload(
+                base_data["payload"], payload_field_type
+            )
             outputs.append(model_class(**base_data))
         return outputs

@@ -46,9 +46,8 @@ class PDFParser:
 
     def parse(self) -> List[Page]:
         import deepdoctection as dd
-        analyzer = dd.get_dd_analyzer(
-            config_overwrite=[f"LANGUAGE='{self._language}'"]
-        )
+
+        analyzer = dd.get_dd_analyzer(config_overwrite=[f"LANGUAGE='{self._language}'"])
         parsed_pages = []
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as f:
             f.write(self._data)

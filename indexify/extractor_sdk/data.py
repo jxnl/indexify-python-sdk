@@ -13,13 +13,11 @@ class BaseData(BaseModel):
     md5_payload_checksum: Optional[str] = None
 
     def model_post_init(self, __context):
-        print(f"self: {self}")
         hash = hashlib.md5()
         for k, v in self.model_dump().items():
             hash.update(k.encode())
             hash.update(pickle.dumps(v))
         self.md5_payload_checksum = hash.hexdigest()
-        print(f"self: {self}")
 
     @staticmethod
     def from_data(**kwargs) -> "BaseData":

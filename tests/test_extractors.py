@@ -1,5 +1,5 @@
 import unittest
-from typing import List
+from typing import List, Optional
 
 from indexify.extractor_sdk.data import BaseData
 from indexify.extractor_sdk.extractor import ExtractorWrapper, extractor
@@ -42,6 +42,20 @@ class TestExtractorWrapper(unittest.TestCase):
         extractor_wrapper = ExtractorWrapper(extractor_b)
         result = extractor_wrapper.get_output_model()
         self.assertEqual(result, List[str])
+
+    # FIXME: Partial extractor is not working
+    # def test_partial_extractor(self):
+    #    @extractor()
+    #    def extractor_c(url: str, some_other_param: str) -> str:
+    #        """
+    #        Random description of extractor_c
+    #        """
+    #        return f"hello {some_other_param}"
+
+    #    print(type(extractor_c))
+    #    partial_extractor = extractor_c.partial(some_other_param="world")
+    #    result = partial_extractor.extract(BaseData.from_data(url="foo"))
+    #    self.assertEqual(result[0].payload, "hello world")
 
 
 class TestCacheAwareExtractorWrapper(unittest.TestCase):
@@ -110,13 +124,15 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
         from pydantic import BaseModel
 
         class SomeModel(BaseModel):
-            payload: List[bytes]
+            data_payload: List[bytes]
             metadata: str
             some_value: int
-            payload_a: bytes
+            may_be_str: Optional[str] = None
+            may_be_bytes: Optional[bytes] = None
+            data_payload_a: bytes
 
         class SomeOtherModel(BaseModel):
-            payload: List[SomeModel]
+            payload_a: List[SomeModel]
             metadata: str
             some_value: int
             payload_b: SomeModel
@@ -127,21 +143,21 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             Random description of extractor_y
             """
             return SomeOtherModel(
-                payload=[
+                payload_a=[
                     SomeModel(
-                        payload=[b"oh my"],
+                        data_payload=[b"oh my"],
                         metadata="world",
                         some_value=1,
-                        payload_a=b"my lord",
+                        data_payload_a=b"my lord",
                     )
                 ],
                 metadata="world",
                 some_value=1,
                 payload_b=SomeModel(
-                    payload=[b"my lord"],
+                    data_payload=[b"my lord"],
                     metadata="world",
                     some_value=1,
-                    payload_a=b"my lord",
+                    data_payload_a=b"my lord",
                 ),
             )
 
@@ -152,7 +168,7 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
         result = cache_aware_extractor_wrapper.extract(
             "extractor_y", BaseData.from_data(url="foo")
         )
-        self.assertEqual(result[0].payload.payload[0].payload, [b"oh my"])
+        self.assertEqual(result[0].payload.payload_a[0].data_payload, [b"oh my"])
 
 
 if __name__ == "__main__":
