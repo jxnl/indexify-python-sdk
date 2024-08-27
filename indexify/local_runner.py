@@ -1,4 +1,5 @@
 from collections import defaultdict
+from queue import deque
 from typing import Any, Dict, Optional, Type, Union
 
 from rich import print
@@ -19,31 +20,35 @@ class LocalRunner(Runner):
     def run(self, g: Graph, **kwargs):
         input = BaseData.from_data(**kwargs)
         print(f"[bold] Invoking {g._start_node}[/bold]")
-        self._run(g, input, g._start_node)
+        self._run(g, input)
 
-    def _run(self, g: Graph, _input: Type[BaseData], node_name: str):
-        extractor_construct: CacheAwareExtractorWrapper = self._extractors.setdefault(
-            node_name,
-            CacheAwareExtractorWrapper(
-                self._cache_dir, g.name, g.get_extractor(node_name)
-            ),
-        )
+    def _run(self, g: Graph, initial_input: Type[BaseData]):
+        queue = deque([(g._start_node, initial_input)])
 
-        res = extractor_construct.extract(node_name, _input)
-        self.results[node_name].extend(res)
+        while queue:
+            node_name, input_data = queue.popleft()
 
-        for out_edge, pre_filter_predicate in g.edges[node_name]:
-            outputs = []
-            for output_of_node in self.results[node_name]:
-                if self._pre_filter_content(
-                    content=output_of_node, pre_filter_predicate=pre_filter_predicate
-                ):
-                    continue
-                outputs.append(output_of_node)
+            extractor_construct = self._extractors.setdefault(
+                node_name,
+                CacheAwareExtractorWrapper(
+                    self._cache_dir, g.name, g.get_extractor(node_name)
+                ),
+            )
+            res = extractor_construct.extract(node_name, input_data)
+            self.results[node_name].extend(res)
 
-            print(f"[bold] invoking {out_edge} with {len(outputs)}[/bold]")
-            for output in outputs:
-                self._run(g, _input=output, node_name=out_edge)
+            for out_edge, pre_filter_predicate in g.edges[node_name]:
+                outputs = [
+                    output_of_node
+                    for output_of_node in self.results[node_name]
+                    if not self._pre_filter_content(
+                        content=output_of_node,
+                        pre_filter_predicate=pre_filter_predicate,
+                    )
+                ]
+                print(f"[bold] invoking {out_edge} with {len(outputs)}[/bold]")
+                for output in outputs:
+                    queue.append((out_edge, output))
 
     def _pre_filter_content(
         self, content: BaseData, pre_filter_predicate: Optional[str]
