@@ -45,16 +45,6 @@ class Graph:
         pre_filter_predicates: Optional[str] = None,
     ) -> "Graph":
 
-        if type(from_node) != type(Extractor):
-            raise ValueError(
-                f"from_node should be of type Extractor, got {type(from_node)}"
-            )
-
-        if type(to_node) != type(Extractor):
-            raise ValueError(
-                f"to_node should be of type Extractor, got {type(to_node)}"
-            )
-
         self.add_node(from_node)
         self.add_node(to_node)
 

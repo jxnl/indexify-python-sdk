@@ -1,13 +1,13 @@
-import io
 import base64
+import io
 from typing import List, Optional, Union
 
 import httpx
-from pydantic import BaseModel, Base64Bytes
+from pydantic import Base64Bytes, BaseModel
 
 from indexify.extractor_sdk.data import BaseData, Feature, File
 from indexify.extractor_sdk.extractor import Extractor, extractor
-from indexify.extractors.pdf_parser import Page, PDFParser, PageFragmentType
+from indexify.extractors.pdf_parser import Page, PageFragmentType, PDFParser
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
 
@@ -19,7 +19,7 @@ def download_pdf(url: str) -> File:
     """
     resp = httpx.get(url=url, follow_redirects=True)
     resp.raise_for_status()
-    return File(data=base64.b64encode(resp.content), mime_type="application/pdf")
+    return File(data=resp.content, mime_type="application/pdf")
 
 
 class Document(BaseModel):
@@ -31,7 +31,7 @@ def parse_pdf(file: File) -> Document:
     """
     Parse pdf file and returns pages:
     """
-    parser = PDFParser(base64.b64decode(file.data))
+    parser = PDFParser(file.data)
     pages: List[Page] = parser.parse()
     return Document(pages=pages)
 
@@ -47,17 +47,13 @@ class ChunkParams(BaseModel):
 
 
 @extractor()
-def extract_chunks(
-    document: Document, chunk_size: int, overlap: int
-) -> List[TextChunk]:
+def extract_chunks(document: Document) -> List[TextChunk]:
     """
     Extract chunks from document
     """
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size, overlap=overlap
-    )
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)
     chunks: List[TextChunk] = []
     for page in document.pages:
         for fragment in page.fragments:
@@ -95,6 +91,7 @@ class TextEmbeddingExtractor(Extractor):
     def __init__(self):
         super().__init__()
         from sentence_transformers import SentenceTransformer
+
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
 
     def extract(self, input: TextChunk) -> List[float]:
@@ -117,6 +114,7 @@ class ImageEmbeddingExtractor(Extractor):
     def __init__(self):
         super().__init__()
         from sentence_transformers import SentenceTransformer
+
         self.model = SentenceTransformer("clip-ViT-B-32")
 
     def extract(self, document: Document) -> List[ImageWithEmbedding]:
@@ -125,21 +123,23 @@ class ImageEmbeddingExtractor(Extractor):
         embedding = []
         for page in document.pages:
             for fragment in page.fragments:
-                if fragment.fragment_type == "image":
+                if fragment.fragment_type == PageFragmentType.FIGURE:
                     image = fragment.image
-                    img_emb = self.model.encode(Image.open(io.BytesArray(image.data)))
+                    img_emb = self.model.encode(Image.open(io.BytesIO(image.data)))
                     embedding.append(
                         ImageWithEmbedding(
                             embedding=img_emb,
                             page_number=page.number,
-                            figure_number=fragment.number,
+                            figure_number=0,
                         )
                     )
         return embedding
 
 
-class LancedDBWriter(Extractor):
+class LanceDBWriter(Extractor):
+    name = "lancedb_writer"
     python_dependencies = ["lancedb", "pyarrow"]
+
     def __init__(self):
         super().__init__()
         import lancedb
@@ -162,15 +162,13 @@ class LancedDBWriter(Extractor):
             ]
         )
         self._text_emb_table = self._client.create_table(
-                "text_embeddings", schema=text_emb_schema, exist_ok=True
-            )
+            "text_embeddings", schema=text_emb_schema, exist_ok=True
+        )
         self._img_emb_table = self._client.create_table(
-                "img_embeddings", schema=img_emb_schema, exist_ok=True
+            "img_embeddings", schema=img_emb_schema, exist_ok=True
         )
 
-    def extract(
-        self, input: Union[ImageWithEmbedding, TextChunk]
-    ) -> None:
+    def extract(self, input: Union[ImageWithEmbedding, TextChunk]) -> None:
         if type(input) == ImageWithEmbedding:
             self._img_emb_table.write(
                 {
@@ -188,13 +186,17 @@ class LancedDBWriter(Extractor):
                 }
             )
 
+
 def build_graph():
-    data: File = download_pdf(url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf")
+    data: File = download_pdf(
+        url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+    )
     document = parse_pdf(data)
     chunks = extract_chunks(document, 1000, 200)
     text_embeddings = text_embedding(chunks)
     image_embeddings = clip_embedding(document)
     lancedb_writer(text_embeddings + image_embeddings)
+
 
 if __name__ == "__main__":
     g = Graph(
@@ -202,28 +204,26 @@ if __name__ == "__main__":
         start_node=download_pdf,
     )
 
-    clip_embedding = ImageEmbeddingExtractor()
-    text_embedding = TextEmbeddingExtractor()
-    write_to_vector_db = LancedDBWriter()
-
     # Parse the PDF which was downloaded
     g.add_edge(download_pdf, parse_pdf)
 
     g.add_edge(parse_pdf, extract_chunks)
 
     g.add_edge(parse_pdf, describe_images)
-    # Embed all the images in the PDF 
-    g.add_edge(parse_pdf, clip_embedding)
+    ## Embed all the images in the PDF
+    g.add_edge(parse_pdf, ImageEmbeddingExtractor)
 
-    # Embed all the text chunks in the PDF
-    g.add_edge(extract_chunks, text_embedding)
+    ## Embed all the text chunks in the PDF
+    g.add_edge(extract_chunks, TextEmbeddingExtractor)
 
-    # Describe all the images in the PDF
-    g.add_edge(describe_images, text_embedding)
+    ## Describe all the images in the PDF
+    # g.add_edge(describe_images, text_embedding)
 
-    # Write all the embeddings to the vector database
-    g.add_edge(text_embedding, write_to_vector_db)
-    g.add_edge(clip_embedding, write_to_vector_db)
+    ## Write all the embeddings to the vector database
+    g.add_edge(TextEmbeddingExtractor, LanceDBWriter)
+    g.add_edge(ImageEmbeddingExtractor, LanceDBWriter)
 
     local_runner = LocalRunner()
-    local_runner.run(g, url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf")
+    local_runner.run(
+        g, url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+    )

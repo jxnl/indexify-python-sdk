@@ -88,9 +88,11 @@ def post_process_segments_and_transcripts(
     # get the end timestamps for each chunk from the ASR output
     end_timestamps = np.array(
         [
-            chunk["timestamp"][-1]
-            if chunk["timestamp"][-1] is not None
-            else sys.float_info.max
+            (
+                chunk["timestamp"][-1]
+                if chunk["timestamp"][-1] is not None
+                else sys.float_info.max
+            )
             for chunk in transcript
         ]
     )

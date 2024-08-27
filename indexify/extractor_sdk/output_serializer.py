@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from typing import List, Type, Union
+from typing import Any, List, Type, Union
 
 from pydantic import BaseModel, RootModel
 
@@ -76,17 +76,23 @@ class PayloadSerializer:
         def deserialize_payload(payload, field_type):
             if isinstance(payload, dict):
                 deserialized_dict = {}
+                if hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
+                    field_type = field_type.__args__[0]
                 for field_name, field_value in payload.items():
                     sub_field_type = field_type.model_fields[field_name].annotation
                     if sub_field_type is bytes:
-                        deserialized_dict[
-                            field_name
-                        ] = self.bytes_serializer.deserialize(field_value)
+                        deserialized_dict[field_name] = (
+                            self.bytes_serializer.deserialize(field_value)
+                        )
                     elif hasattr(sub_field_type, "__origin__"):
                         if sub_field_type.__origin__ is Union:
                             inner_types = sub_field_type.__args__
                             for inner_type in inner_types:
-                                if issubclass(inner_type, BaseModel):
+                                if (
+                                    getattr(inner_type, "__origin__", None) is BaseModel
+                                    or isinstance(inner_type, type)
+                                    and issubclass(inner_type, BaseModel)
+                                ):
                                     deserialized_dict[field_name] = deserialize_payload(
                                         field_value, inner_type
                                     )
