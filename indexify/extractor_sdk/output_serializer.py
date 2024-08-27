@@ -81,9 +81,9 @@ class PayloadSerializer:
                 for field_name, field_value in payload.items():
                     sub_field_type = field_type.model_fields[field_name].annotation
                     if sub_field_type is bytes:
-                        deserialized_dict[field_name] = (
-                            self.bytes_serializer.deserialize(field_value)
-                        )
+                        deserialized_dict[
+                            field_name
+                        ] = self.bytes_serializer.deserialize(field_value)
                     elif hasattr(sub_field_type, "__origin__"):
                         if sub_field_type.__origin__ is Union:
                             inner_types = sub_field_type.__args__

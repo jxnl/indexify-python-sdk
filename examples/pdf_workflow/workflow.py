@@ -149,20 +149,18 @@ class LanceDBWriter(Extractor):
         text_emb_schema = pa.schema(
             [
                 pa.field("vector", pa.list_(pa.float32(), list_size=384)),
-                pa.field("document_id", pa.string()),
-                pa.field("page_number", pa.int32()),
-            ]
-        )
-
-        img_emb_schema = pa.schema(
-            [
-                pa.field("vector", pa.list_(pa.float32(), list_size=512)),
-                pa.field("document_id", pa.string()),
                 pa.field("page_number", pa.int32()),
             ]
         )
         self._text_emb_table = self._client.create_table(
             "text_embeddings", schema=text_emb_schema, exist_ok=True
+        )
+
+        img_emb_schema = pa.schema(
+            [
+                pa.field("vector", pa.list_(pa.float32(), list_size=512)),
+                pa.field("page_number", pa.int32()),
+            ]
         )
         self._img_emb_table = self._client.create_table(
             "img_embeddings", schema=img_emb_schema, exist_ok=True
@@ -170,17 +168,18 @@ class LanceDBWriter(Extractor):
 
     def extract(self, input: Union[ImageWithEmbedding, TextChunk]) -> None:
         if type(input) == ImageWithEmbedding:
-            self._img_emb_table.write(
+            print(len(input.embedding))
+            print(input.page_number)
+            self._img_emb_table.add(
                 {
-                    "img_embeddings": input.embedding,
-                    "document_id": "document_id",
+                    "vector": input.embedding,
                     "page_number": input.page_number,
                 }
             )
         elif type(input) == TextChunk:
-            self._text_emb_table.write(
+            self._text_emb_table.add(
                 {
-                    "text_embeddings": input.embeddings,
+                    "vector": input.embeddings,
                     "document_id": "document_id",
                     "page_number": input.metadata["page_number"],
                 }

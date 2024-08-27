@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Any, Dict, Optional, Type, Union
 
+from rich import print
+
 from indexify.extractor_sdk.data import BaseData
 from indexify.extractor_sdk.extractor import Extractor, extractor
 from indexify.extractor_sdk.local_cache import CacheAwareExtractorWrapper
@@ -16,11 +18,10 @@ class LocalRunner(Runner):
 
     def run(self, g: Graph, **kwargs):
         input = BaseData.from_data(**kwargs)
+        print(f"[bold] Invoking {g._start_node}[/bold]")
         self._run(g, input, g._start_node)
 
     def _run(self, g: Graph, _input: Type[BaseData], node_name: str):
-        print(f"---- Starting node {node_name}")
-
         extractor_construct: CacheAwareExtractorWrapper = self._extractors.setdefault(
             node_name,
             CacheAwareExtractorWrapper(
@@ -29,16 +30,19 @@ class LocalRunner(Runner):
         )
 
         res = extractor_construct.extract(node_name, _input)
-        print(f"---- Finished node {node_name}")
         self.results[node_name].extend(res)
 
         for out_edge, pre_filter_predicate in g.edges[node_name]:
+            outputs = []
             for output_of_node in self.results[node_name]:
                 if self._pre_filter_content(
                     content=output_of_node, pre_filter_predicate=pre_filter_predicate
                 ):
                     continue
-                self._run(g, _input=output_of_node, node_name=out_edge)
+                outputs.append(output_of_node)
+
+            print(f"[bold] invoking {out_edge} with {len(outputs)}[/bold]")
+            self._run(g, _input=output_of_node, node_name=out_edge)
 
     def _pre_filter_content(
         self, content: BaseData, pre_filter_predicate: Optional[str]
