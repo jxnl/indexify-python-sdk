@@ -1,11 +1,10 @@
-import base64
 import io
 from typing import List, Optional, Union
 
 import httpx
-from pydantic import Base64Bytes, BaseModel
+from pydantic import BaseModel
 
-from indexify.extractor_sdk.data import BaseData, Feature, File
+from indexify.extractor_sdk.data import BaseData, File
 from indexify.extractor_sdk.extractor import Extractor, extractor
 from indexify.extractors.pdf_parser import Page, PageFragmentType, PDFParser
 from indexify.graph import Graph
@@ -182,7 +181,6 @@ class LanceDBWriter(Extractor):
                     )
                 ]
             )
-            self._clip_table.flush()
         elif type(input) == TextChunk:
             self._text_table.add(
                 [
@@ -193,7 +191,6 @@ class LanceDBWriter(Extractor):
                     )
                 ]
             )
-            self._text_table.flush()
 
 
 if __name__ == "__main__":
@@ -235,7 +232,7 @@ if __name__ == "__main__":
         "sentence-transformers/all-MiniLM-L6-v2"
     )
     emb = st.encode("consistent hashing")
-    results = text_table.search(emb.tolist()).to_pydantic(TextEmbeddingTable)
+    results = text_table.search(emb.tolist()).limit(10).to_pydantic(TextEmbeddingTable)
     print(f"Found {len(results)} results")
     for result in results:
-        print(f"chunk {result.chunk} found in page {result.page_number}")
+        print(result)
