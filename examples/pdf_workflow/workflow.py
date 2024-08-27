@@ -170,7 +170,7 @@ class LanceDBWriter(Extractor):
             "image_embeddings", schema=ImageEmbeddingTable, exist_ok=True
         )
 
-    def extract(self, input: Union[ImageWithEmbedding, TextChunk]) -> None:
+    def extract(self, input: Union[ImageWithEmbedding, TextChunk]) -> bool:
         if type(input) == ImageWithEmbedding:
             self._clip_table.add(
                 [
@@ -191,6 +191,7 @@ class LanceDBWriter(Extractor):
                     )
                 ]
             )
+        return True
 
 
 if __name__ == "__main__":
