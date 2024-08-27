@@ -39,6 +39,7 @@ def parse_pdf(file: File) -> Document:
 class TextChunk(BaseData):
     chunk: str
     metadata: dict = {}
+    page_number: Optional[int] = None
     embeddings: Optional[List[float]] = None
 
 
@@ -60,9 +61,7 @@ def extract_chunks(document: Document) -> List[TextChunk]:
             if fragment.fragment_type == PageFragmentType.TEXT:
                 texts = text_splitter.split_text(fragment.text)
                 for text in texts:
-                    chunks.append(
-                        TextChunk(chunk=text, metadata={"page_number": page.number})
-                    )
+                    chunks.append(TextChunk(chunk=text, page_number=page.number))
 
     return chunks
 
@@ -90,13 +89,17 @@ class TextEmbeddingExtractor(Extractor):
 
     def __init__(self):
         super().__init__()
-        from sentence_transformers import SentenceTransformer
+        self.model = None
 
-        self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    def extract(self, input: TextChunk) -> TextChunk:
+        if self.model is None:
+            from sentence_transformers import SentenceTransformer
 
-    def extract(self, input: TextChunk) -> List[float]:
+            self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
         embeddings = self.model.encode(input.chunk)
-        return embeddings.tolist()
+        input.embeddings = embeddings.tolist()
+        return input
 
 
 class ImageWithEmbedding(BaseModel):
@@ -136,6 +139,21 @@ class ImageEmbeddingExtractor(Extractor):
         return embedding
 
 
+from lancedb.pydantic import LanceModel, Vector
+
+
+class ImageEmbeddingTable(LanceModel):
+    vector: Vector(512)
+    page_number: int
+    figure_number: int
+
+
+class TextEmbeddingTable(LanceModel):
+    vector: Vector(384)
+    text: str
+    page_number: int
+
+
 class LanceDBWriter(Extractor):
     name = "lancedb_writer"
     python_dependencies = ["lancedb", "pyarrow"]
@@ -146,55 +164,36 @@ class LanceDBWriter(Extractor):
         import pyarrow as pa
 
         self._client = lancedb.connect("vectordb.lance")
-        text_emb_schema = pa.schema(
-            [
-                pa.field("vector", pa.list_(pa.float32(), list_size=384)),
-                pa.field("page_number", pa.int32()),
-            ]
+        self._text_table = self._client.create_table(
+            "text_embeddings", schema=TextEmbeddingTable, exist_ok=True
         )
-        self._text_emb_table = self._client.create_table(
-            "text_embeddings", schema=text_emb_schema, exist_ok=True
-        )
-
-        img_emb_schema = pa.schema(
-            [
-                pa.field("vector", pa.list_(pa.float32(), list_size=512)),
-                pa.field("page_number", pa.int32()),
-            ]
-        )
-        self._img_emb_table = self._client.create_table(
-            "img_embeddings", schema=img_emb_schema, exist_ok=True
+        self._clip_table = self._client.create_table(
+            "image_embeddings", schema=ImageEmbeddingTable, exist_ok=True
         )
 
     def extract(self, input: Union[ImageWithEmbedding, TextChunk]) -> None:
         if type(input) == ImageWithEmbedding:
-            print(len(input.embedding))
-            print(input.page_number)
-            self._img_emb_table.add(
-                {
-                    "vector": input.embedding,
-                    "page_number": input.page_number,
-                }
+            self._clip_table.add(
+                [
+                    ImageEmbeddingTable(
+                        vector=input.embedding,
+                        page_number=input.page_number,
+                        figure_number=0,
+                    )
+                ]
             )
+            self._clip_table.flush()
         elif type(input) == TextChunk:
-            self._text_emb_table.add(
-                {
-                    "vector": input.embeddings,
-                    "document_id": "document_id",
-                    "page_number": input.metadata["page_number"],
-                }
+            self._text_table.add(
+                [
+                    TextEmbeddingTable(
+                        vector=input.embeddings,
+                        text=input.chunk,
+                        page_number=input.page_number,
+                    )
+                ]
             )
-
-
-def build_graph():
-    data: File = download_pdf(
-        url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
-    )
-    document = parse_pdf(data)
-    chunks = extract_chunks(document, 1000, 200)
-    text_embeddings = text_embedding(chunks)
-    image_embeddings = clip_embedding(document)
-    lancedb_writer(text_embeddings + image_embeddings)
+            self._text_table.flush()
 
 
 if __name__ == "__main__":
@@ -226,3 +225,17 @@ if __name__ == "__main__":
     local_runner.run(
         g, url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
     )
+
+    import lancedb
+    import sentence_transformers
+
+    client = lancedb.connect("vectordb.lance")
+    text_table = client.open_table("text_embeddings")
+    st = sentence_transformers.SentenceTransformer(
+        "sentence-transformers/all-MiniLM-L6-v2"
+    )
+    emb = st.encode("consistent hashing")
+    results = text_table.search(emb.tolist()).to_pydantic(TextEmbeddingTable)
+    print(f"Found {len(results)} results")
+    for result in results:
+        print(f"chunk {result.chunk} found in page {result.page_number}")

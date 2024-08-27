@@ -120,6 +120,29 @@ class PayloadSerializer:
                         deserialized_list.append(
                             self.bytes_serializer.deserialize(item)
                         )
+                    elif hasattr(field_type.__args__[0], "__origin__"):
+                        if field_type.__args__[0].__origin__ is Union:
+                            inner_types = field_type.__args__[0].__args__
+                            for inner_type in inner_types:
+                                if (
+                                    getattr(inner_type, "__origin__", None) is BaseModel
+                                    or isinstance(inner_type, type)
+                                    and issubclass(inner_type, BaseModel)
+                                ):
+                                    deserialized_list.append(
+                                        deserialize_payload(item, inner_type)
+                                    )
+                                    break
+                        elif issubclass(field_type.__args__[0].__origin__, BaseModel):
+                            deserialized_list.append(
+                                deserialize_payload(item, field_type.__args__[0])
+                            )
+                        elif field_type.__args__[0].__origin__ is list:
+                            deserialized_list.append(
+                                deserialize_payload(item, field_type.__args__[0])
+                            )
+                        else:
+                            deserialized_list.append(item)
                     elif issubclass(field_type.__args__[0], BaseModel):
                         deserialized_list.append(
                             deserialize_payload(item, field_type.__args__[0])
