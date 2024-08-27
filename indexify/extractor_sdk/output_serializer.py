@@ -33,62 +33,79 @@ class PayloadSerializer:
         self.bytes_serializer = BytesFieldSerializer(data_dir)
 
     def serialize(self, outputs: CachedOutput) -> str:
+        def serialize_payload(payload):
+            if isinstance(payload, dict):
+                serialized_dict = {}
+                for field_name, field_value in payload.items():
+                    if isinstance(field_value, bytes):
+                        serialized_dict[field_name] = self.bytes_serializer.serialize(field_value)
+                    elif isinstance(field_value, (dict, list)):
+                        serialized_dict[field_name] = serialize_payload(field_value)
+                    else:
+                        serialized_dict[field_name] = field_value
+                return serialized_dict
+            elif isinstance(payload, list):
+                serialized_list = []
+                for item in payload:
+                    if isinstance(item, bytes):
+                        serialized_list.append(self.bytes_serializer.serialize(item))
+                    elif isinstance(item, (dict, list)):
+                        serialized_list.append(serialize_payload(item))
+                    else:
+                        serialized_list.append(item)
+                return serialized_list
+            else:
+                if isinstance(payload, bytes):
+                    return self.bytes_serializer.serialize(payload)
+                else:
+                    return payload
+
         dict_to_serialize = []
         for data in outputs.model_dump():
             base_data_dict = {}
             payload = data.pop("payload")
             base_data_dict.update(data)
-            base_data_dict["payload"] = {}
-            if isinstance(payload, dict):
-                for field_name, field_value in payload.items():
-                    if isinstance(field_value, bytes):
-                        base_data_dict["payload"][
-                            field_name
-                        ] = self.bytes_serializer.serialize(field_value)
-                    else:
-                        base_data_dict["payload"][field_name] = field_value
-            elif isinstance(payload, list):
-                for i, items in enumerate(payload):
-                    if isinstance(items, bytes):
-                        base_data_dict["payload"][i] = self.bytes_serializer.serialize(
-                            items
-                        )
-                    else:
-                        base_data_dict["payload"][i] = items
-            else:
-                if isinstance(payload, bytes):
-                    base_data_dict["payload"] = self.bytes_serializer.serialize(payload)
-                else:
-                    base_data_dict["payload"] = payload
+            base_data_dict["payload"] = serialize_payload(payload)
             dict_to_serialize.append(base_data_dict)
 
         return json.dumps(dict_to_serialize)
 
     def deserialize(self, json_str: str, model_class: Type[BaseModel]) -> BaseModel:
+        def deserialize_payload(payload, field_type):
+            if isinstance(payload, dict):
+                deserialized_dict = {}
+                for field_name, field_value in payload.items():
+                    sub_field_type = field_type.model_fields[field_name].annotation
+                    if sub_field_type is bytes:
+                        deserialized_dict[field_name] = self.bytes_serializer.deserialize(field_value)
+                    elif hasattr(sub_field_type, "__origin__") and issubclass(sub_field_type.__origin__, BaseModel):
+                        deserialized_dict[field_name] = deserialize_payload(field_value, sub_field_type)
+                    elif hasattr(sub_field_type, "__origin__") and sub_field_type.__origin__ is list:
+                        deserialized_dict[field_name] = deserialize_payload(field_value, sub_field_type)
+                    else:
+                        deserialized_dict[field_name] = field_value
+                        deserialized_dict[field_name] = field_value
+                return deserialized_dict
+            elif isinstance(payload, list):
+                deserialized_list = []
+                for item in payload:
+                    if field_type.__args__[0] is bytes:
+                        deserialized_list.append(self.bytes_serializer.deserialize(item))
+                    elif issubclass(field_type.__args__[0], BaseModel):
+                        deserialized_list.append(deserialize_payload(item, field_type.__args__[0]))
+                    else:
+                        deserialized_list.append(item)
+                return deserialized_list
+            else:
+                if field_type is bytes:
+                    return self.bytes_serializer.deserialize(payload)
+                else:
+                    return payload
+
         data = json.loads(json_str)
         outputs = []
         for base_data in data:
-            if isinstance(base_data["payload"], dict):
-                for field_name, field_value in base_data["payload"].items():
-                    field_type = (
-                        model_class.model_fields["payload"]
-                        .annotation.model_fields[field_name]
-                        .annotation
-                    )
-                    if field_type is bytes:
-                        base_data["payload"][
-                            field_name
-                        ] = self.bytes_serializer.deserialize(field_value)
-            elif isinstance(base_data["payload"], list):
-                for i, items in enumerate(base_data["payload"]):
-                    if isinstance(items, bytes):
-                        base_data["payload"][i] = self.bytes_serializer.deserialize(
-                            items
-                        )
-            else:
-                if isinstance(base_data["payload"], bytes):
-                    base_data["payload"] = self.bytes_serializer.deserialize(
-                        base_data["payload"]
-                    )
+            payload_field_type = model_class.model_fields["payload"].annotation
+            base_data["payload"] = deserialize_payload(base_data["payload"], payload_field_type)
             outputs.append(model_class(**base_data))
         return outputs

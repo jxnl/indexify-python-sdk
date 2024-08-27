@@ -106,6 +106,54 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
         self.assertEqual(result[0].payload.metadata, "world")
         self.assertEqual(result[0].payload.some_value, 1)
 
+    def test_payload_with_bytes_in_nested_list(self):
+        from pydantic import BaseModel
+
+        class SomeModel(BaseModel):
+            payload: List[bytes]
+            metadata: str
+            some_value: int
+            payload_a: bytes
+
+        class SomeOtherModel(BaseModel):
+            payload: List[SomeModel]
+            metadata: str
+            some_value: int
+            payload_b: SomeModel
+
+        @extractor()
+        def extractor_y(url: str) -> SomeOtherModel:
+            """
+            Random description of extractor_y
+            """
+            return SomeOtherModel(
+                payload=[
+                    SomeModel(
+                        payload=[b"oh my"],
+                        metadata="world",
+                        some_value=1,
+                        payload_a=b"my lord",
+                    )
+                ],
+                metadata="world",
+                some_value=1,
+                payload_b=SomeModel(
+                    payload=[b"my lord"],
+                    metadata="world",
+                    some_value=1,
+                    payload_a=b"my lord",
+                ),
+            )
+
+        extractor_wrapper = ExtractorWrapper(extractor_y)
+        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+            "extractor_cache", "test_graph", extractor_wrapper
+        )
+        result = cache_aware_extractor_wrapper.extract(
+            "extractor_y", BaseData.from_data(url="foo")
+        )
+        self.assertEqual(result[0].payload.payload[0].payload, [b"oh my"])
+
 
 if __name__ == "__main__":
     unittest.main()
