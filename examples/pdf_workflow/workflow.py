@@ -81,7 +81,7 @@ def describe_images(document: Document) -> List[ImageDescription]:
 
 
 class TextEmbeddingExtractor(Extractor):
-    name = "text-embedding"
+    name = "text-embedding-extractor"
     description = "Extractor class that captures an embedding model"
     system_dependencies = []
     input_mime_types = ["text"]
@@ -235,4 +235,4 @@ if __name__ == "__main__":
     results = text_table.search(emb.tolist()).limit(10).to_pydantic(TextEmbeddingTable)
     print(f"Found {len(results)} results")
     for result in results:
-        print(result)
+        print(f"page_number: {result.page_number}\n\ntext: {result.text}")

@@ -42,7 +42,8 @@ class LocalRunner(Runner):
                 outputs.append(output_of_node)
 
             print(f"[bold] invoking {out_edge} with {len(outputs)}[/bold]")
-            self._run(g, _input=output_of_node, node_name=out_edge)
+            for output in outputs:
+                self._run(g, _input=output, node_name=out_edge)
 
     def _pre_filter_content(
         self, content: BaseData, pre_filter_predicate: Optional[str]
