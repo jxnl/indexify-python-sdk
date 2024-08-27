@@ -115,12 +115,14 @@ class ImageEmbeddingExtractor(Extractor):
 
     def __init__(self):
         super().__init__()
-        from sentence_transformers import SentenceTransformer
-
-        self.model = SentenceTransformer("clip-ViT-B-32")
+        self.model = None
 
     def extract(self, document: Document) -> List[ImageWithEmbedding]:
         from PIL import Image
+        from sentence_transformers import SentenceTransformer
+
+        if self.model is None:
+            self.model = SentenceTransformer("clip-ViT-B-32")
 
         embedding = []
         for page in document.pages:
@@ -196,7 +198,7 @@ class LanceDBWriter(Extractor):
 
 if __name__ == "__main__":
     g = Graph(
-        "Extract pages, tables, images from pdf",
+        "Extract_pages_tables_images_pdf",
         start_node=download_pdf,
     )
 
@@ -222,8 +224,10 @@ if __name__ == "__main__":
     local_runner = LocalRunner()
     local_runner.run_from_serialized_code(
         code=g.serialize(),
-        url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
+        url="https://raft.github.io/raft.pdf",
     )
+
+    ## After extraction, lets test retreival
 
     import lancedb
     import sentence_transformers
@@ -233,7 +237,7 @@ if __name__ == "__main__":
     st = sentence_transformers.SentenceTransformer(
         "sentence-transformers/all-MiniLM-L6-v2"
     )
-    emb = st.encode("consistent hashing")
+    emb = st.encode("leader election")
     results = text_table.search(emb.tolist()).limit(10).to_pydantic(TextEmbeddingTable)
     print(f"Found {len(results)} results")
     for result in results:
