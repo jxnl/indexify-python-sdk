@@ -17,6 +17,10 @@ class LocalRunner(Runner):
         self._extractors: Dict[str, CacheAwareExtractorWrapper] = {}
         self._cache_dir = cache_dir
 
+    def run_from_serialized_code(self, code: bytes, **kwargs):
+        g = Graph.deserialize(graph=code)
+        self.run(g, **kwargs)
+
     def run(self, g: Graph, **kwargs):
         input = BaseData.from_data(**kwargs)
         print(f"[bold] Invoking {g._start_node}[/bold]")

@@ -38,6 +38,10 @@ class Graph:
     def serialize(self):
         return cloudpickle.dumps(self)
 
+    @staticmethod
+    def deserialize(graph: bytes) -> "Graph":
+        return cloudpickle.loads(graph)
+
     def add_edge(
         self,
         from_node: Type[Extractor],

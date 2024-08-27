@@ -220,8 +220,9 @@ if __name__ == "__main__":
     g.add_edge(ImageEmbeddingExtractor, LanceDBWriter)
 
     local_runner = LocalRunner()
-    local_runner.run(
-        g, url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf"
+    local_runner.run_from_serialized_code(
+        code=g.serialize(),
+        url="https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
     )
 
     import lancedb
