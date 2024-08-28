@@ -38,41 +38,29 @@ class LocalRunner(Runner):
                     self._cache_dir, g.name, g.get_extractor(node_name)
                 ),
             )
-            res = extractor_construct.extract(node_name, input_data)
-            self.results[node_name].extend(res)
+            extractor_results = extractor_construct.extract(node_name, input_data)
+            self.results[node_name].extend(extractor_results)
 
-            for out_edge, pre_filter_predicate in g.edges[node_name]:
-                outputs = [
-                    output_of_node
-                    for output_of_node in self.results[node_name]
-                    if not self._pre_filter_content(
-                        content=output_of_node,
-                        pre_filter_predicate=pre_filter_predicate,
-                    )
-                ]
-                print(f"[bold] invoking {out_edge} with {len(outputs)}[/bold]")
-                for output in outputs:
+            out_edges = g.edges.get(node_name, [])
+            # Figure out if there are any routers for this node
+            if node_name in g.routers:
+                for output in extractor_results:
+                    out_edge = self._route(g, node_name, output)
+                    if out_edge is not None and out_edge in g.nodes:
+                        print(f"[bold]dynamic router returned node: {out_edge}[/bold]")
+                        out_edges.append(out_edge)
+
+            for out_edge in out_edges:
+                print(
+                    f"invoking {out_edge} with {len(extractor_results)} outputs from {node_name}"
+                )
+                for output in extractor_results:
                     queue.append((out_edge, output))
 
-    def _pre_filter_content(
-        self, content: BaseData, pre_filter_predicate: Optional[str]
-    ) -> bool:
-        if pre_filter_predicate is None:
-            return False
-
-        atoms = pre_filter_predicate.split("and")
-        if len(atoms) == 0:
-            return False
-
-        # TODO For now only support `and` and `=` and `string values`
-        bools = []
-        metadata = content.get_features()["metadata"]
-        for atom in atoms:
-            l, r = atom.split("=")
-            if l in metadata:
-                bools.append(metadata[l] != r)
-
-        return all(bools)
+    def _route(self, g: Graph, node_name: str, input: Type[BaseData]) -> Optional[str]:
+        if str(type(input)) == "<class 'indexify.extractor_sdk.data.DynamicModel'>":
+            return g.routers[node_name](**input.model_dump())
+        return g.routers[node_name](input.payload)
 
     def get_result(self, node: Union[extractor, Extractor]) -> Any:
         node_name = node.name

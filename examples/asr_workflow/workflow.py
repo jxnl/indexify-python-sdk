@@ -1,120 +1,211 @@
-import json
-import subprocess
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from indexify.extractor_sdk.data import BaseData, Feature
+from indexify.extractor_sdk.data import Feature, File
 from indexify.extractor_sdk.extractor import extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
 
 
-class YoutubeURL(BaseData):
+class YoutubeURL(BaseModel):
     url: str = Field(..., description="URL of the youtube video")
     resolution: str = Field("720p", description="Resolution of the video")
 
 
-class DiarizedSpeechSegment(BaseData):
-    speaker: str
+@extractor()
+def download_youtube_video(url: str) -> List[File]:
+    """
+    Download the youtube video from the url.
+    """
+    from pytubefix import YouTube
+
+    yt = YouTube(url)
+    content = yt.streams.first().download()
+    return [File(data=content, mime_type="video/mp4")]
+
+
+@extractor()
+def extract_audio_from_video(file: File) -> File:
+    """
+    Extract the audio from the video.
+    """
+    from pydub import AudioSegment
+
+    audio = AudioSegment.from_file(file.data)
+    audio.export("audio.wav", format="wav")
+    return File(
+        data=audio.export("audio.wav", format="wav").read(), mime_type="audio/wav"
+    )
+
+
+class SpeechSegment(BaseModel):
+    speaker: Optional[str] = None
     text: str
-    start_ts: int
-    end_ts: int
+    start_ts: float
+    end_ts: float
 
 
-class DiarizedSpeech(BaseData):
-    segments: List[DiarizedSpeechSegment]
+class SpeechClassification(BaseModel):
+    classification: str
+    confidence: float
+
+
+class Transcription(BaseModel):
+    segments: List[SpeechSegment]
+    classification: Optional[SpeechClassification] = None
+
+
+@extractor()
+def transcribe_audio(file: File) -> Transcription:
+    """
+    Transcribe audio and diarize speakers.
+    """
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel("base", device="cpu")
+    segments, _ = model.transcribe("audio.wav")
+    audio_segments = []
+    for segment in segments:
+        audio_segments.append(
+            SpeechSegment(text=segment.text, start_ts=segment.start, end_ts=segment.end)
+        )
+    return Transcription(segments=audio_segments)
+
+
+@extractor()
+def classify_text_feature(speech: Transcription) -> Transcription:
+    """
+    Classify the intent of the audio.
+    """
+    from llama_cpp import Llama
+
+    model = Llama.from_pretrained(
+        repo_id="NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
+        filename="*Q8_0.gguf",
+        verbose=True,
+        n_ctx=60000,
+    )
+    transcription_text = "\n".join([segment.text for segment in speech.segments])
+    prompt = f"""
+    You are a helpful assistant that classifies the intent of the audio.
+    Classify the intent of the audio. These are the possible intents:
+    - job-interview
+    - sales-call
+    - customer-support-call
+    - technical-support-call
+    - marketing-call
+    - product-call
+    - financial-call
+    Write the intent of the audio in the following format:
+    intent: job-interview
+
+    The transcription of the audio is:
+    {transcription_text}
+    """
+    output = model(prompt=prompt, max_tokens=50, stop=["\n"])
+    response = output["choices"][0]["text"]
+    output_tokens = response.split(":")
+    if len(output_tokens) > 1:
+        if output_tokens[0].strip() == "intent":
+            if output_tokens[1].strip() in [
+                "job-interview",
+                "sales-call",
+                "customer-support-call",
+                "technical-support-call",
+                "marketing-call",
+                "product-call",
+                "financial-call",
+            ]:
+                speech.classification = SpeechClassification(
+                    classification=output_tokens[1].strip(), confidence=0
+                )
+                return speech
+    speech.classification = SpeechClassification(classification="unknown", confidence=0)
+    return speech
+
+
+def route_transcription_to_summarizer(speech: Transcription) -> Optional[str]:
+    if speech.classification.classification == "job-interview":
+        return "summarize_job_interview"
+    elif speech.classification.classification == "sales-call":
+        return "summarize_sales_call"
+    return None
 
 
 class Summary(BaseModel):
     summary: str
 
 
-class SpeechClassification(BaseData):
-    classification: str
-    confidence: float
+@extractor()
+def summarize_job_interview(speech: Transcription) -> Summary:
+    """
+    Summarize the job interview.
+    """
+    from llama_cpp import Llama
 
-
-class DiarizedSpeechWithClassification(BaseData):
-    diarized_speech: DiarizedSpeech
-    classification: SpeechClassification
-
-
-class UploadFile(BaseModel):
-    data: bytes
-
-
-@extractor(description="Get yt video")
-def get_yt_video_and_extract_audio(url: YoutubeURL) -> List[UploadFile]:
-    # TODO download video from yt but let's hardcode it for now.
-    file_loc = "./indexify_example_data/Mock Interview Preparation： Common Questions with Feedback! [R_dxlajqA4s].mp4"
-    output_loc = "./indexify_example_data/audio.mp3"
-    # try:
-    #    # -y
-    #    result = subprocess.call(['ffmpeg', '-i', file_loc, output_loc])
-    # except CalledProcessError as e:
-    #    raise e
-    #    pass
-    f = open("requirements.txt", "br")
-    return [UploadFile(data=f.read())]
-
-
-# kind of annoying to not know the types of the output being generated.
-@extractor(description="Diarize Speakers in audio")
-def diarize_speakers(file: UploadFile) -> DiarizedSpeech:
-    # params = ASRExtractorConfig(batch_size=1)
-    # extractor = ASRExtractor()
-    # results = extractor.extract(content, params=params)
-    # return results
-
-    # hardcoded because cpu diarizer isn't working
-    return DiarizedSpeech(
-        segments=[
-            DiarizedSpeechSegment(
-                speaker="Speaker 1",
-                text="Hello, my name is John Doe",
-                start_ts=0,
-                end_ts=5,
-            ),
-            DiarizedSpeechSegment(
-                speaker="Speaker 2",
-                text="Hello, my name is Jane Doe",
-                start_ts=5,
-                end_ts=10,
-            ),
-        ]
+    model = Llama.from_pretrained(
+        repo_id="NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
+        filename="*Q8_0.gguf",
+        verbose=False,
+        n_ctx=60000,
     )
+    transcription_text = "\n".join([segment.text for segment in speech.segments])
+    prompt = f"""
+    I have a transcript of a job interview that took place on [date]. The interview included discussions about the candidate’s background, skills, and experience, as well as their 
+    responses to specific questions and scenarios. Please summarize the key points from the interview, including:
+
+    1. Candidate’s Strengths and Qualifications: Highlight any notable skills, experiences, or achievements mentioned.
+    2. Key Responses and Insights: Summarize the candidate’s answers to important questions or scenarios.
+    3. Cultural Fit and Soft Skills: Provide an overview of the candidate’s fit with the company culture and any relevant soft skills.
+    4. Areas of Concern or Improvement: Note any reservations or areas where the candidate might need further development.
+    5. Overall Impression and Recommendation: Offer a brief assessment of the candidate’s suitability for the role and any suggested next steps.
+
+    The transcript is:
+    {transcription_text}
+    """
+    output = model(prompt=prompt, max_tokens=30000, stop=["\n"])
+    response = output["choices"][0]["text"]
+    return Summary(summary=response)
 
 
-@extractor(description="Classify text into job interview or sales call")
-def classify_text_feature(speech: DiarizedSpeech) -> List[Feature]:
-    return [Feature.metadata(value={"intent": "job-interview"})]
+@extractor()
+def summarize_sales_call(speech: Transcription) -> Summary:
+    """
+    Summarize the sales call.
+    """
+    from llama_cpp import Llama
 
+    model = Llama.from_pretrained(
+        repo_id="NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
+        filename="*Q8_0.gguf",
+        verbose=False,
+        n_ctx=60000,
+    )
+    transcription_text = "\n".join([segment.text for segment in speech.segments])
+    prompt = f"""
+    I had a sales call with a prospective client earlier today. The main points of the conversation included [briefly describe key topics discussed, such as client needs, product features, 
+    objections, and any agreements or follow-ups]. Please summarize the call, highlighting the key details, client concerns, and any action items or next steps. Additionally, 
+    if there are any recommendations for improving our approach based on the discussion, please include those as well
 
-@extractor(description="Summarize Job interview")
-def summarize_job_interview(speech: DiarizedSpeech) -> Summary:
-    return Summary(summary="This is a summary of the job interview")
-
-
-@extractor(description="Summarize sales call")
-def summarize_sales_call(speech: DiarizedSpeech) -> Summary:
-    return Summary(summary="This is a summary of the sales call")
+    The transcript is:
+    {transcription_text}
+    """
+    output = model(prompt=prompt, max_tokens=30000, stop=["\n"])
+    response = output["choices"][0]["text"]
+    return Summary(summary=response)
 
 
 def create_graph():
-    g = Graph("Crawler", input=YoutubeURL, start_node=get_yt_video_and_extract_audio)
-    g.add_edge(get_yt_video_and_extract_audio, diarize_speakers)
-    g.add_edge(diarize_speakers, classify_text_feature)
-    g.add_edge(
-        classify_text_feature,
-        summarize_job_interview,
-        pre_filter_predicates="intent=job-interview",
-    )
-    g.add_edge(
-        classify_text_feature,
-        summarize_sales_call,
-        pre_filter_predicates="intent=sales-call",
-    )
+    g = Graph("Youtube_Video_Summarizer", start_node=download_youtube_video)
+    g.add_edge(download_youtube_video, extract_audio_from_video)
+    g.add_edge(extract_audio_from_video, transcribe_audio)
+    g.add_edge(transcribe_audio, classify_text_feature)
+
+    g.add_node(summarize_job_interview)
+    g.add_node(summarize_sales_call)
+
+    g.route(classify_text_feature, route_transcription_to_summarizer)
     return g
 
 
@@ -122,9 +213,4 @@ if __name__ == "__main__":
     g = create_graph()
 
     runner = LocalRunner()
-    runner.run(
-        g, wf_input=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s")
-    )
-
-    print(f"--- wf output: {runner.get_result(classify_text_feature)}")
-    print(f"--- wf output: {runner.get_result(summarize_job_interview)}")
+    runner.run(g, url="https://www.youtube.com/watch?v=R_dxlajqA4s")
