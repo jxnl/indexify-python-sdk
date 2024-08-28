@@ -14,14 +14,14 @@ class YoutubeURL(BaseModel):
 
 
 @extractor()
-def download_youtube_video(url: str) -> List[File]:
+def download_youtube_video(url: YoutubeURL) -> List[File]:
     """
     Download the youtube video from the url.
     """
     from pytubefix import YouTube
 
-    yt = YouTube(url)
-    content = yt.streams.first().download()
+    yt = YouTube(url.url)
+    content = yt.streams.filter(res=url.resolution).first().download()
     return [File(data=content, mime_type="video/mp4")]
 
 
@@ -217,4 +217,4 @@ if __name__ == "__main__":
     g = create_graph()
 
     runner = LocalRunner()
-    runner.run(g, url="https://www.youtube.com/watch?v=R_dxlajqA4s")
+    runner.run(g, url=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))

@@ -105,7 +105,10 @@ class ExtractorWrapper:
     def extract(self, input: BaseData) -> List[BaseData]:
         input = input.payload
         if str(type(input)) == "<class 'indexify.extractor_sdk.data.DynamicModel'>":
-            extracted_data = self.extractor.extract(**input.model_dump())
+            extractor_input = {}
+            for field_name in input.model_fields_set:
+                extractor_input[field_name] = getattr(input, field_name)
+            extracted_data = self.extractor.extract(**extractor_input)
         else:
             extracted_data = self.extractor.extract(input)
 
