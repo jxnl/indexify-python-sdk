@@ -74,7 +74,7 @@ def transcribe_audio(file: File) -> Transcription:
 
 
 @extractor()
-def classify_text_feature(speech: Transcription) -> Transcription:
+def classify_meeting_intent(speech: Transcription) -> Transcription:
     """
     Classify the intent of the audio.
     """
@@ -126,6 +126,10 @@ def classify_text_feature(speech: Transcription) -> Transcription:
 
 
 def route_transcription_to_summarizer(speech: Transcription) -> Optional[str]:
+    """
+    Route the transcription to the summarizer based on the classification result from
+    the classify_text_feature extractor.
+    """
     if speech.classification.classification == "job-interview":
         return "summarize_job_interview"
     elif speech.classification.classification == "sales-call":
@@ -179,7 +183,7 @@ def summarize_sales_call(speech: Transcription) -> Summary:
     model = Llama.from_pretrained(
         repo_id="NousResearch/Hermes-3-Llama-3.1-8B-GGUF",
         filename="*Q8_0.gguf",
-        verbose=False,
+        verbose=True,
         n_ctx=60000,
     )
     transcription_text = "\n".join([segment.text for segment in speech.segments])
@@ -200,12 +204,12 @@ def create_graph():
     g = Graph("Youtube_Video_Summarizer", start_node=download_youtube_video)
     g.add_edge(download_youtube_video, extract_audio_from_video)
     g.add_edge(extract_audio_from_video, transcribe_audio)
-    g.add_edge(transcribe_audio, classify_text_feature)
+    g.add_edge(transcribe_audio, classify_meeting_intent)
 
     g.add_node(summarize_job_interview)
     g.add_node(summarize_sales_call)
 
-    g.route(classify_text_feature, route_transcription_to_summarizer)
+    g.route(classify_meeting_intent, route_transcription_to_summarizer)
     return g
 
 
