@@ -10,7 +10,7 @@ from indexify.local_runner import LocalRunner
 
 class YoutubeURL(BaseModel):
     url: str = Field(..., description="URL of the youtube video")
-    resolution: str = Field("720p", description="Resolution of the video")
+    resolution: str = Field("480p", description="Resolution of the video")
 
 
 @extractor()
@@ -21,7 +21,9 @@ def download_youtube_video(url: YoutubeURL) -> List[File]:
     from pytubefix import YouTube
 
     yt = YouTube(url.url)
-    content = yt.streams.filter(res=url.resolution).first().download()
+    # content = yt.streams.filter(res=url.resolution).first().download()
+    # This doesn't always work as YT might not have the resolution specified
+    content = yt.streams.first().download()
     return [File(data=content, mime_type="video/mp4")]
 
 
