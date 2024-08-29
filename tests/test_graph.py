@@ -4,16 +4,17 @@ from typing import List, Mapping
 from pydantic import BaseModel
 
 from indexify import Graph
-from indexify.extractor_sdk.data import BaseData, File
-from indexify.extractor_sdk.extractor import extractor
+from indexify.functions_sdk.data_objects import File
+from indexify.functions_sdk.indexify_functions import indexify_function
 from indexify.local_runner import LocalRunner
 
 
-@extractor()
+@indexify_function()
 def extractor_a(url: str) -> File:
     """
     Random description of extractor_a
     """
+    print(f"extractor_a called with url: {url}")
     assert url == "https://example.com"
     assert isinstance(url, str)
     return File(data=bytes(b"hello"), mime_type="text/plain")
@@ -25,7 +26,7 @@ class FileChunk(BaseModel):
     end: int
 
 
-@extractor()
+@indexify_function()
 def extractor_b(file: File) -> List[FileChunk]:
     return [
         FileChunk(data=file.data, start=0, end=5),
@@ -36,8 +37,7 @@ def extractor_b(file: File) -> List[FileChunk]:
 class SomeMetadata(BaseModel):
     metadata: Mapping[str, str]
 
-
-@extractor()
+@indexify_function()
 def extractor_c(file_chunk: FileChunk) -> SomeMetadata:
     return SomeMetadata(metadata={"a": "b", "c": "d"})
 

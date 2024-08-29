@@ -4,8 +4,8 @@ from typing import Any, List, Optional, Type, Union
 from pydantic import BaseModel, create_model
 from typing_extensions import get_args, get_origin
 
-from .data import BaseData
-from .extractor import ExtractorWrapper
+from .data_objects import BaseData
+from .indexify_functions import IndexifyFunctionWrapper  
 from .output_serializer import CachedOutput, OutputSerializer
 
 
@@ -37,23 +37,23 @@ def get_list_inner_type(type_hint: Type) -> Union[Type, None]:
         return None
 
 
-class CacheAwareExtractorWrapper:
-    def __init__(self, cache_dir: str, graph: str, extractor_wrapper: ExtractorWrapper):
+class CacheAwareFunctionWrapper:
+    def __init__(self, cache_dir: str, graph: str, fn_wrapper: IndexifyFunctionWrapper):
         self._cache_dir = cache_dir
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
 
         self._graph = graph
-        self._extractor_wrapper = extractor_wrapper
-        self._output_model = extractor_wrapper.get_output_model()
+        self._fn_wrapper = fn_wrapper
+        self._output_model = fn_wrapper.get_output_model()
         self._serializer = OutputSerializer(base_path=f"{self._cache_dir}/blobs")
 
-    def extract(self, node_name: str, input: BaseData) -> List[BaseData]:
+    def run(self, node_name: str, input: BaseData) -> List[BaseData]:
         cached_result = self.get(self._graph, node_name, input)
         if cached_result:
             return cached_result
 
-        output = self._extractor_wrapper.extract(input)
+        output = self._fn_wrapper.run(input)
         self.set(self._graph, node_name, input, output)
         return output
 

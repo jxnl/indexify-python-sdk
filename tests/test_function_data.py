@@ -1,10 +1,7 @@
 import unittest
 
-from indexify.extractor_sdk.data import BaseData
-from indexify.extractor_sdk.output_serializer import (
-    CachedOutput,
-    OutputSerializer,
-)
+from indexify.functions_sdk.data_objects import BaseData
+from indexify.functions_sdk.output_serializer import CachedOutput, OutputSerializer
 
 
 class TestBaseData(unittest.TestCase):

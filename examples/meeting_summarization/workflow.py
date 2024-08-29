@@ -206,6 +206,7 @@ def create_graph():
     g = Graph("Youtube_Video_Summarizer", start_node=download_youtube_video)
     g.add_edge(download_youtube_video, extract_audio_from_video)
     g.add_edge(extract_audio_from_video, transcribe_audio)
+    g.add_edge(transcribe_audio, write_transcription_to_schema)
     g.add_edge(transcribe_audio, classify_meeting_intent)
 
     g.add_node(summarize_job_interview)

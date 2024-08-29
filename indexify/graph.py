@@ -3,9 +3,8 @@ from typing import Callable, Dict, List, Optional, Type
 
 import cloudpickle
 
-from .extractor_sdk import Extractor
-from .extractor_sdk.data import BaseData
-from .extractor_sdk.extractor import ExtractorWrapper
+from .functions_sdk.indexify_functions import IndexifyFunction, IndexifyFunctionWrapper
+from .functions_sdk.data_objects import BaseData
 
 
 def load_graph(graph: bytes) -> "Graph":
@@ -13,25 +12,25 @@ def load_graph(graph: bytes) -> "Graph":
 
 
 class Graph:
-    def __init__(self, name: str, start_node: Extractor):
+    def __init__(self, name: str, start_node: IndexifyFunction):
         self.name = name
 
-        self.nodes: Dict[str, ExtractorWrapper] = {}
+        self.nodes: Dict[str, IndexifyFunctionWrapper] = {}
         self.routers: Dict[str, Callable[[BaseData], Optional[str]]] = {}
         self.edges: Dict[str, List[str]] = defaultdict(list)
 
         self._start_node: str = start_node.name
         self.add_node(start_node)
 
-    def get_extractor(self, name: str) -> ExtractorWrapper:
+    def get_extractor(self, name: str) -> IndexifyFunctionWrapper:
         return self.nodes[name]
 
-    def add_node(self, extractor: Extractor) -> "Graph":
-        name = extractor.name
+    def add_node(self, indexify_fn: IndexifyFunction) -> "Graph":
+        name = indexify_fn.name
         if name in self.nodes:
             return
 
-        self.nodes[name] = ExtractorWrapper(extractor)
+        self.nodes[name] = IndexifyFunctionWrapper(indexify_fn)
 
         return self
 
@@ -44,8 +43,8 @@ class Graph:
 
     def add_edge(
         self,
-        from_node: Type[Extractor],
-        to_node: Type[Extractor],
+        from_node: Type[IndexifyFunction],
+        to_node: Type[IndexifyFunction],
     ) -> "Graph":
 
         self.add_node(from_node)
@@ -58,7 +57,7 @@ class Graph:
         return self
 
     def route(
-        self, from_node: Type[Extractor], router: Callable[[BaseData], Optional[str]]
+        self, from_node: Type[IndexifyFunction], router: Callable[[BaseData], Optional[str]]
     ) -> "Graph":
         from_node_name = from_node.name
         self.routers[from_node_name] = router
