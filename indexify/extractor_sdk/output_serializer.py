@@ -110,7 +110,6 @@ class PayloadSerializer:
                         )
                     else:
                         deserialized_dict[field_name] = field_value
-                        deserialized_dict[field_name] = field_value
 
                 return deserialized_dict
             elif isinstance(payload, list):

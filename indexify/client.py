@@ -1,6 +1,6 @@
 import hashlib
 import json
-import logging
+import os
 import uuid
 from collections import namedtuple
 from dataclasses import dataclass
@@ -16,6 +16,8 @@ from .error import Error
 from .extraction_policy import ExtractionGraph
 from .extractor_sdk.data import ContentMetadata
 from .extractor_sdk.extractor import ExtractorMetadata
+from .local_runner import LocalRunner
+from .remote_client import RemoteClient
 from .settings import DEFAULT_SERVICE_URL, DEFAULT_SERVICE_URL_HTTPS
 from .utils import json_set_default
 
@@ -53,6 +55,18 @@ class SqlQueryResult:
     result: List[Dict]
 
 
+def create_client(
+    service_url: str = DEFAULT_SERVICE_URL,
+    config_path: Optional[str] = None,
+    local: bool = False,
+    *args,
+    **kwargs,
+) -> "IndexifyClient":
+    if local:
+        return LocalRunner()
+    return RemoteClient(config_path=config_path, service_url=service_url, **kwargs)
+
+
 class IndexifyClient:
     """
     IndexifyClient is the main entry point for the SDK.
@@ -77,9 +91,12 @@ class IndexifyClient:
         service_url: str = DEFAULT_SERVICE_URL,  # switch this to DEFAULT_SERVICE_URL_HTTPS for TLS
         namespace: str = "default",
         config_path: Optional[str] = None,
+        local: bool = False,
         *args,
         **kwargs,
     ):
+        if local:
+            self.runner = LocalRunner()
         if config_path:
             with open(config_path, "r") as file:
                 config = yaml.safe_load(file)
@@ -747,44 +764,3 @@ class IndexifyClient:
             )
             print("Extraction completed for content id: ", content_id)
         response.raise_for_status()
-
-    def generate_unique_hex_id(self):
-        """
-        Generate a unique hexadecimal identifier
-
-        Returns:
-            str: a unique hexadecimal string
-        """
-        logging.warning(
-            "This method is deprecated. Use generate_unique_hex_id from indexify instead."
-        )
-        return uuid.uuid4().hex[:16]
-
-    def generate_hash_from_string(self, input_string: str):
-        """
-        Generate a hash for the given string and return it as a hexadecimal string.
-
-        Args:
-            input_string (str): The input string to hash.
-
-        Returns:
-            str: The hexadecimal hash of the input string.
-        """
-        logging.warning(
-            "This method is deprecated. Use generate_hash_from_string from indexify instead."
-        )
-        hash_object = hashlib.sha256(input_string.encode())
-        return hash_object.hexdigest()[:16]
-
-    def __print_additional_error_context(self, error: Error):
-        print(error)
-
-        if error.status == "ExtractionGraphError":
-            graphs = [eg.name for eg in self.extraction_graphs]
-            extractors = [ext.name for ext in self.extractors()]
-            print(f"Available extraction graphs: {graphs}")
-            print(f"Available extractors: {extractors}")
-
-        if error.status == "SearchError":
-            indexes = [index["name"] for index in self.indexes()]
-            print(f"Available indexes: {indexes}")

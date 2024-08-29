@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Optional, Type, Callable
+from typing import Callable, Dict, List, Optional, Type
 
 import cloudpickle
 

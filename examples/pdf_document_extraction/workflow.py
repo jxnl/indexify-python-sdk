@@ -42,10 +42,6 @@ class TextChunk(BaseData):
     embeddings: Optional[List[float]] = None
 
 
-class ChunkParams(BaseModel):
-    chunk_size: int
-
-
 @extractor()
 def extract_chunks(document: Document) -> List[TextChunk]:
     """

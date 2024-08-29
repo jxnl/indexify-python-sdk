@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
-from .extractor_sdk import Feature, Graph
+from pydantic import Json
+
+from .graph import Graph
 
 
 class BaseClient(ABC):
@@ -9,33 +11,51 @@ class BaseClient(ABC):
     ### Operational APIs
     @abstractmethod
     def register_extraction_graph(self, graph: Graph):
+        """
+        Register an extraction graph.
+        graph: Graph: The graph to be registered
+        """
         pass
 
     @abstractmethod
-    def graphs(self) -> str:
+    def graphs(self) -> List[str]:
+        """
+        Get the graphs.
+        return: List[str]: The graphs
+        """
         pass
 
     @abstractmethod
-    def namespaces(self) -> str:
+    def namespaces(self) -> List[str]:
+        """
+        Get the namespaces.
+        return: List[str]: The namespaces
+        """
         pass
 
     @abstractmethod
     def create_namespace(self, namespace: str):
+        """
+        Create a namespace.
+        namespace: str: The name of the namespace to be created
+        """
         pass
 
     ### Ingestion APIs
     @abstractmethod
-    def invoke_graph_with_object(self, graph: str, object: Any) -> str:
+    def invoke_graph_with_object(self, graph: str, **kwargs) -> str:
         """
         Invokes a graph with an input object.
         graph: str: The name of the graph to invoke
-        object: Any: The input object to the graph. It should be JSON serializable
+        kwargs: Any: Named arguments to be passed to the graph. Example: url="https://www.google.com", web_page_text="Hello world!"
         return: str: The ID of the ingested object
         """
         pass
 
     @abstractmethod
-    def invoke_graph_with_file(self, graph: str, path: str) -> str:
+    def invoke_graph_with_file(
+        self, graph: str, path: str, metadata: Optional[Dict[str, Json]] = None
+    ) -> str:
         """
         Invokes a graph with an input file. The file's mimetype is appropriately detected.
         graph: str: The name of the graph to invoke
@@ -46,8 +66,12 @@ class BaseClient(ABC):
 
     ### Retrieval APIs
     @abstractmethod
-    def extracted_objects(
-        self, graph: str, ingested_object_id: str, extractor_name: Optional[str]
+    def graph_outputs(
+        self,
+        graph: str,
+        ingested_object_id: str,
+        extractor_name: Optional[str],
+        block_until_done: bool = True,
     ) -> Union[Dict[str, List[Any]], List[Any]]:
         """
         Returns the extracted objects by a graph for an ingested object. If the extractor name is provided, only the objects extracted by that extractor are returned.
@@ -55,17 +79,7 @@ class BaseClient(ABC):
         graph: str: The name of the graph
         ingested_object_id: str: The ID of the ingested object
         extractor_name: Optional[str]: The name of the extractor whose output is to be returned if provided
+        block_until_done: bool = True: If True, the method will block until the extraction is done. If False, the method will return immediately.
         return: Union[Dict[str, List[Any]], List[Any]]: The extracted objects. If the extractor name is provided, the output is a list of extracted objects by the extractor. If the extractor name is not provided, the output is a dictionary with the extractor name as the key and the extracted objects as the value. If no objects are found, an empty list is returned.
-        """
-        pass
-
-    @abstractmethod
-    def features(
-        self, object_id: str, graph: Optional[str]
-    ) -> Union[Dict[str, List[Feature]], List[Feature]]:
-        """
-        Returns the features of an object.
-        object_id: str: The ID of the object
-        return: List[Feature]: The features associated with the object that were extracted. If a graph name is provided, only the features extracted by that graph are returned.
         """
         pass

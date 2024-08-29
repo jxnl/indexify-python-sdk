@@ -108,3 +108,4 @@ class ContentMetadata(BaseModel):
 class File(BaseModel):
     data: bytes
     mime_type: str
+    metadata: Optional[Dict[str, Json]] = None

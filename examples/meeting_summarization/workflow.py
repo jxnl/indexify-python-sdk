@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from indexify.extractor_sdk.data import Feature, File
+from indexify.extractor_sdk.data import File
 from indexify.extractor_sdk.extractor import extractor
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
@@ -217,6 +217,16 @@ def create_graph():
 
 if __name__ == "__main__":
     g = create_graph()
-
     runner = LocalRunner()
-    runner.run(g, url=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s"))
+    runner.register_extraction_graph(g)
+    content_id = runner.invoke_graph_with_object(
+        g.name, url=YoutubeURL(url="https://www.youtube.com/watch?v=R_dxlajqA4s")
+    )
+    print(f"[bold] Retrieving transcription for {content_id} [/bold]")
+    outputs = runner.graph_outputs(
+        g.name, ingested_object_id=content_id, extractor_name=transcribe_audio.name
+    )
+    transcription = outputs[0].payload
+    for segment in transcription.segments:
+        print(f"[bold] {segment.start_ts} - {segment.end_ts} [/bold]")
+        print(f"[bold] {segment.text} [/bold]\n")
