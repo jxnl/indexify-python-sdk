@@ -61,21 +61,6 @@ def extract_chunks(document: Document) -> List[TextChunk]:
     return chunks
 
 
-class ImageDescription(BaseModel):
-    description: str
-    page_number: int
-    figure_number: int
-
-
-@indexify_function()
-def describe_images(document: Document) -> List[ImageDescription]:
-    """
-    Describe images in document
-    """
-    descriptions = []
-    return descriptions
-
-
 class TextEmbeddingExtractor(IndexifyFunction):
     name = "text-embedding-extractor"
     description = "Extractor class that captures an embedding model"
@@ -201,17 +186,12 @@ if __name__ == "__main__":
     # Parse the PDF which was downloaded
     g.add_edge(download_pdf, parse_pdf)
 
-    g.add_edge(parse_pdf, extract_chunks)
-
-    g.add_edge(parse_pdf, describe_images)
-    ## Embed all the images in the PDF
-    g.add_edge(parse_pdf, ImageEmbeddingExtractor)
+    # Extract all the text chunks in the PDF
+    # and embed the images with CLIP
+    g.add_edges(parse_pdf, [extract_chunks, ImageEmbeddingExtractor])
 
     ## Embed all the text chunks in the PDF
     g.add_edge(extract_chunks, TextEmbeddingExtractor)
-
-    ## Describe all the images in the PDF
-    # g.add_edge(describe_images, text_embedding)
 
     ## Write all the embeddings to the vector database
     g.add_edge(TextEmbeddingExtractor, LanceDBWriter)

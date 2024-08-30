@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, List, Optional, Type, Union
 
 import cloudpickle
 
@@ -40,20 +40,22 @@ class Graph:
     @staticmethod
     def deserialize(graph: bytes) -> "Graph":
         return cloudpickle.loads(graph)
+    
+    def add_edge(self, from_node: Type[IndexifyFunction], to_node: Type[IndexifyFunction]) -> "Graph":
+        self.add_edges(from_node, [to_node])
+        return self
 
-    def add_edge(
+    def add_edges(
         self,
         from_node: Type[IndexifyFunction],
-        to_node: Type[IndexifyFunction],
+        to_node: List[Type[IndexifyFunction]],
     ) -> "Graph":
-
         self.add_node(from_node)
-        self.add_node(to_node)
-
         from_node_name = from_node.name
-        to_node_name = to_node.name
-
-        self.edges[from_node_name].append(to_node_name)
+        for node in to_node:
+            self.add_node(node)
+            to_node_name = node.name
+            self.edges[from_node_name].append(to_node_name)
         return self
 
     def route(
