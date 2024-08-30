@@ -1,6 +1,7 @@
 # Indexify Python SDK
 
 [![PyPI version](https://badge.fury.io/py/indexify.svg)](https://badge.fury.io/py/indexify)
+[![Discord](https://dcbadge.vercel.app/api/server/VXkY7zVmTD?style=flat&compact=true)](https://discord.gg/VXkY7zVmTD)
 
 This is the Python SDK to build real-time continuously running unstructured data processing pipelines with Indexify.
 
@@ -62,7 +63,6 @@ def write_to_db(chunk: TextChunk):
     print(chunk)
 
 ## Create a graph
-```python
 from indexify import Graph
 
 g = Graph(name="my_graph", start_node=split_text)
@@ -84,7 +84,7 @@ graph_outputs = client.graph_outputs(g.name, output_id)
 ```python
 from indexify import IndexifyClient
 
-client = IndexifyClient(service_url="http://localhost:8000")
+client = IndexifyClient(service_url="http://localhost:8900")
 client.register_graph(g)
 ```
 
