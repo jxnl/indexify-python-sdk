@@ -1,12 +1,12 @@
 import os
 from typing import Any, List, Optional, Type, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model
 from typing_extensions import get_args, get_origin
 
 from .data import BaseData
 from .extractor import ExtractorWrapper
-from .output_serializer import CachedOutput, PayloadSerializer
+from .output_serializer import CachedOutput, OutputSerializer
 
 
 def get_list_inner_type(type_hint: Type) -> Union[Type, None]:
@@ -46,6 +46,7 @@ class CacheAwareExtractorWrapper:
         self._graph = graph
         self._extractor_wrapper = extractor_wrapper
         self._output_model = extractor_wrapper.get_output_model()
+        self._serializer = OutputSerializer(base_path=f"{self._cache_dir}/blobs")
 
     def extract(self, node_name: str, input: BaseData) -> List[BaseData]:
         cached_result = self.get(self._graph, node_name, input)
@@ -65,7 +66,6 @@ class CacheAwareExtractorWrapper:
         if os.path.exists(file_path):
             with open(file_path, "r") as f:
                 output_json = f.read()
-                serializer = PayloadSerializer()
                 output_model = self._output_model
                 if get_origin(self._output_model) is list:
                     output_model = get_list_inner_type(self._output_model)
@@ -75,7 +75,7 @@ class CacheAwareExtractorWrapper:
                     md5_payload_checksum: Optional[str] = None
                     payload: output_model
 
-                output = serializer.deserialize(output_json, BaseData)
+                output = self._serializer.deserialize(output_json, BaseData)
                 return output
         return None
 
@@ -86,13 +86,12 @@ class CacheAwareExtractorWrapper:
         input: BaseData,
         output: List[BaseData],
     ):
-        serializer = PayloadSerializer()
         node_name_with_hex = f"{node_name}_{input.md5_payload_checksum}"
         dir_path = os.path.join(self._cache_dir, graph)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-        cached_output = serializer.serialize(CachedOutput(output))
+        cached_output = self._serializer.serialize(CachedOutput(output))
         file_path = os.path.join(dir_path, f"{node_name_with_hex}.json")
         with open(file_path, "w") as f:
             f.write(cached_output)

@@ -1,7 +1,8 @@
 import json
 import os
-import uuid
-from typing import Any, List, Type, Union
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Type, Union, get_args, get_origin
+from uuid import uuid4
 
 from pydantic import BaseModel, RootModel
 
@@ -10,157 +11,93 @@ from .data import BaseData
 CachedOutput = RootModel[List[BaseData]]
 
 
-class BytesFieldSerializer:
-    def __init__(self, data_dir="./data"):
-        self.data_dir = data_dir
-        os.makedirs(self.data_dir, exist_ok=True)
+class OutputSerializer:
+    def __init__(self, base_path: str = "./serialized_files"):
+        self._base_path = base_path
 
-    def serialize(self, value: bytes) -> str:
-        file_name = str(uuid.uuid4())
-        file_path = os.path.join(self.data_dir, file_name)
-        with open(file_path, "wb") as f:
-            f.write(value)
-        return file_name
+    def _serialize(self, obj: Any, base_path: str = "./serialized_files") -> Any:
+        if isinstance(obj, BaseModel):
+            result = {}
+            for field_name, field_value in obj:
+                result[field_name] = self._serialize(field_value)
+            result[
+                "__pydantic_model__"
+            ] = f"{obj.__class__.__module__}.{obj.__class__.__name__}"
+            return result
+        elif isinstance(obj, bytes):
+            file_name = f"{uuid4().hex}.bin"
+            file_path = os.path.join(base_path, file_name)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "wb") as f:
+                f.write(obj)
+            return {"__bytes_file__": file_path}
+        elif isinstance(obj, list):
+            return [self._serialize(item) for item in obj]
+        elif isinstance(obj, dict):
+            return {key: self._serialize(value) for key, value in obj.items()}
+        else:
+            return obj
 
-    def deserialize(self, file_name: str) -> bytes:
-        file_path = os.path.join(self.data_dir, file_name)
-        with open(file_path, "rb") as f:
-            return f.read()
-
-
-class PayloadSerializer:
-    def __init__(self, data_dir="./data"):
-        self.bytes_serializer = BytesFieldSerializer(data_dir)
-
-    def serialize(self, outputs: CachedOutput) -> str:
-        def serialize_payload(payload):
-            if isinstance(payload, dict):
-                serialized_dict = {}
-                for field_name, field_value in payload.items():
-                    if isinstance(field_value, bytes):
-                        serialized_dict[field_name] = self.bytes_serializer.serialize(
-                            field_value
-                        )
-                    elif isinstance(field_value, (dict, list)):
-                        serialized_dict[field_name] = serialize_payload(field_value)
-                    else:
-                        serialized_dict[field_name] = field_value
-                return serialized_dict
-            elif isinstance(payload, list):
-                serialized_list = []
-                for item in payload:
-                    if isinstance(item, bytes):
-                        serialized_list.append(self.bytes_serializer.serialize(item))
-                    elif isinstance(item, (dict, list)):
-                        serialized_list.append(serialize_payload(item))
-                    else:
-                        serialized_list.append(item)
-                return serialized_list
+    def _deserialize(self, data: Any, model: Type[BaseModel]) -> Any:
+        if isinstance(data, dict):
+            if "__bytes_file__" in data:
+                with open(data["__bytes_file__"], "rb") as f:
+                    return f.read()
+            elif "__pydantic_model__" in data:
+                model_name = data.pop("__pydantic_model__")
+                # Find the correct model for nested structures
+                if model_name != f"{model.__module__}.{model.__name__}":
+                    for field_type in model.__annotations__.values():
+                        origin = get_origin(field_type)
+                        args = get_args(field_type)
+                        if origin is Union and isinstance(
+                            None, args
+                        ):  # handle Optional
+                            args = [arg for arg in args if arg is not type(None)]
+                        if args and issubclass(args[0], BaseModel):
+                            if f"{args[0].__module__}.{args[0].__name__}" == model_name:
+                                model = args[0]
+                                break
+                return model(
+                    **{k: self._deserialize(v, model) for k, v in data.items()}
+                )
             else:
-                if isinstance(payload, bytes):
-                    return self.bytes_serializer.serialize(payload)
-                else:
-                    return payload
+                return {k: self._deserialize(v, model) for k, v in data.items()}
+        elif isinstance(data, list):
+            # For lists, we need to determine the type of the items
+            if model.__annotations__:
+                first_field_type = next(iter(model.__annotations__.values()))
+                origin = get_origin(first_field_type)
+                args = get_args(first_field_type)
+                if origin is list and args:
+                    item_type = args[0]
+                    return [self._deserialize(item, item_type) for item in data]
+            return [self._deserialize(item, model) for item in data]
+        else:
+            return data
 
-        dict_to_serialize = []
-        for data in outputs.model_dump():
-            base_data_dict = {}
-            payload = data.pop("payload")
-            base_data_dict.update(data)
-            base_data_dict["payload"] = serialize_payload(payload)
-            dict_to_serialize.append(base_data_dict)
+    def serialize(self, obj: CachedOutput) -> str:
+        normalized_dicts = []
+        for item in obj.root:
+            normalized_dicts.append(self._serialize(item))
 
-        return json.dumps(dict_to_serialize)
+        return json.dumps(normalized_dicts, indent=2)
 
-    def deserialize(self, json_str: str, model_class: Type[BaseModel]) -> BaseModel:
-        def deserialize_payload(payload, field_type):
-            if isinstance(payload, dict):
-                deserialized_dict = {}
-                if hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
-                    field_type = field_type.__args__[0]
-                for field_name, field_value in payload.items():
-                    sub_field_type = field_type.model_fields[field_name].annotation
-                    if sub_field_type is bytes:
-                        deserialized_dict[
-                            field_name
-                        ] = self.bytes_serializer.deserialize(field_value)
-                    elif hasattr(sub_field_type, "__origin__"):
-                        if sub_field_type.__origin__ is Union:
-                            inner_types = sub_field_type.__args__
-                            for inner_type in inner_types:
-                                if (
-                                    getattr(inner_type, "__origin__", None) is BaseModel
-                                    or isinstance(inner_type, type)
-                                    and issubclass(inner_type, BaseModel)
-                                ):
-                                    deserialized_dict[field_name] = deserialize_payload(
-                                        field_value, inner_type
-                                    )
-                                    break
-                        elif issubclass(sub_field_type.__origin__, BaseModel):
-                            deserialized_dict[field_name] = deserialize_payload(
-                                field_value, sub_field_type
-                            )
-                        elif sub_field_type.__origin__ is list:
-                            deserialized_dict[field_name] = deserialize_payload(
-                                field_value, sub_field_type
-                            )
-                        deserialized_dict[field_name] = deserialize_payload(
-                            field_value, sub_field_type
-                        )
-                    else:
-                        deserialized_dict[field_name] = field_value
-
-                return deserialized_dict
-            elif isinstance(payload, list):
-                deserialized_list = []
-                for item in payload:
-                    if field_type.__args__[0] is bytes:
-                        deserialized_list.append(
-                            self.bytes_serializer.deserialize(item)
-                        )
-                    elif hasattr(field_type.__args__[0], "__origin__"):
-                        if field_type.__args__[0].__origin__ is Union:
-                            inner_types = field_type.__args__[0].__args__
-                            for inner_type in inner_types:
-                                if (
-                                    getattr(inner_type, "__origin__", None) is BaseModel
-                                    or isinstance(inner_type, type)
-                                    and issubclass(inner_type, BaseModel)
-                                ):
-                                    deserialized_list.append(
-                                        deserialize_payload(item, inner_type)
-                                    )
-                                    break
-                        elif issubclass(field_type.__args__[0].__origin__, BaseModel):
-                            deserialized_list.append(
-                                deserialize_payload(item, field_type.__args__[0])
-                            )
-                        elif field_type.__args__[0].__origin__ is list:
-                            deserialized_list.append(
-                                deserialize_payload(item, field_type.__args__[0])
-                            )
-                        else:
-                            deserialized_list.append(item)
-                    elif issubclass(field_type.__args__[0], BaseModel):
-                        deserialized_list.append(
-                            deserialize_payload(item, field_type.__args__[0])
-                        )
-                    else:
-                        deserialized_list.append(item)
-                return deserialized_list
-            else:
-                if field_type is bytes:
-                    return self.bytes_serializer.deserialize(payload)
-                else:
-                    return payload
-
+    def deserialize(self, json_str: str, model: Type[BaseModel]) -> BaseModel:
         data = json.loads(json_str)
-        outputs = []
-        for base_data in data:
-            payload_field_type = model_class.model_fields["payload"].annotation
-            base_data["payload"] = deserialize_payload(
-                base_data["payload"], payload_field_type
+        normalized_outputs = []
+        for obj in data:
+            content_id = obj.get("content_id", None)
+            md5_payload_checksum = obj.get("md5_payload_checksum", None)
+            payload = obj.get("payload")
+            deserialized_payload = self._deserialize(
+                payload, model.model_fields["payload"].annotation
             )
-            outputs.append(model_class(**base_data))
-        return outputs
+            normalized_outputs.append(
+                BaseData(
+                    content_id=content_id,
+                    md5_payload_checksum=md5_payload_checksum,
+                    payload=deserialized_payload,
+                )
+            )
+        return normalized_outputs
