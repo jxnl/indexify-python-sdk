@@ -13,6 +13,8 @@ class BaseData(BaseModel):
     def model_post_init(self, __context):
         hash = hashlib.md5()
         for k, v in self.model_dump().items():
+            if k == "md5_payload_checksum":
+                continue
             hash.update(k.encode())
             hash.update(pickle.dumps(v))
         self.md5_payload_checksum = hash.hexdigest()
