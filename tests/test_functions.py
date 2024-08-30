@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from indexify.functions_sdk.data_objects import BaseData
 from indexify.functions_sdk.indexify_functions import IndexifyFunctionWrapper, indexify_function
-from indexify.functions_sdk.local_cache import CacheAwareExtractorWrapper
+from indexify.functions_sdk.local_cache import CacheAwareFunctionWrapper
 
 
 class TestFunctionWrapper(unittest.TestCase):
@@ -16,7 +16,7 @@ class TestFunctionWrapper(unittest.TestCase):
             return "hello"
 
         extractor_wrapper = IndexifyFunctionWrapper(extractor_a)
-        result = extractor_wrapper.extract(BaseData.from_data(url="foo"))
+        result = extractor_wrapper.run(BaseData.from_data(url="foo"))
         self.assertEqual(result[0].payload, "hello")
 
     def test_get_output_model(self):
@@ -68,10 +68,10 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             return "hello"
 
         extractor_wrapper = IndexifyFunctionWrapper(extractor_a)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_a", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload, "hello")
@@ -85,10 +85,10 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             return ["hello", "world"]
 
         extractor_wrapper = IndexifyFunctionWrapper(extractor_b)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_b", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload, "hello")
@@ -110,10 +110,10 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             return TestModel(payload=b"hello", metadata="world", some_value=1)
 
         extractor_wrapper = IndexifyFunctionWrapper(extractor_x)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_x", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload.payload, b"hello")
@@ -162,10 +162,10 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             )
 
         extractor_wrapper = IndexifyFunctionWrapper(extractor_y)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_y", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload.payload_a[0].data_payload, [b"oh my"])
