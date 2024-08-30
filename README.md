@@ -19,7 +19,7 @@ pip install indexify
 2. Indexes the text using MiniLM-L6-v2, the images with CLIP
 3. Writes the results into a vector database.
 
-**[Youtube Transcription Summarizer](./examples/meeting_minutes_extraction/workflow.py)**
+**[Youtube Transcription Summarizer](./examples/video_summarization/workflow.py)**
 1. Downloads Youtube Video
 2. Extracts audio from the video and transcribes using `Faster Whisper` 
 3. Uses Llama 3.1 backed by `Llama.cpp` to understand and classify the nature of the video.
@@ -42,6 +42,7 @@ pip install indexify
 from pydantic import BaseModel
 from indexify import indexify_function
 
+# Define function inputs and outputs
 class Document(BaseModel):
     text: str
     metadata: Dict[str, Any]
@@ -51,6 +52,8 @@ class TextChunk(BaseModel):
     metadata: Dict[str, Any]
     embedding: Optional[List[float]] = None
 
+
+# Decorate a function which is going to be part of your data processing graph
 @indexify_function()
 def split_text(doc: Document) -> List[TextChunk]:
     midpoint = len(doc.text) // 2
@@ -58,15 +61,17 @@ def split_text(doc: Document) -> List[TextChunk]:
     second_half = TextChunk(text=doc.text[midpoint:], metadata=doc.metadata)
     return [first_half, second_half]
 
-@indexify_function()
+# Any requirements specified is automatically installed in production clusters
+@indexify_function(requirements=["langchain_text_splitter"])
 def embed_text(chunk: TextChunk) -> TextChunk:
     chunk.embedding = [0.1, 0.2, 0.3]
     return chunk
 
-@indexify_function()
+# You can constrain functions to run on specific executors 
+@indexify_function(executor_runtime_name="postgres-driver-image")
 def write_to_db(chunk: TextChunk):
     # Write to your favorite vector database
-    print(chunk)
+    ...
 
 ## Create a graph
 from indexify import Graph

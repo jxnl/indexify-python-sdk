@@ -1,12 +1,39 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, Json
 
 from indexify.functions_sdk.indexify_functions import indexify_function
 from indexify.functions_sdk.data_objects import File 
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
 
+# Table -> Youtube Video Index 
+# Col 1 -> Youtube Video URL
+# Col 2 -> JSON of the transcription with segments
+# Col 3 -> Classification results
+# Col 4 -> Summary of the video
+
+class YoutubeVideoData(BaseModel):
+    file: File 
+    transcription: Json = None
+    classification: str = None
+    summary: str = None
+    labels: List[str] = []
+
+
+@indexify_function()
+def write_to_db(a: File, b: Transctipn, c: SpeechClassification, d: Summary) -> YoutubeVideoData:
+    """
+    Write the youtube video data to the database.
+    """
+    pass
+
+def create_graph():
+    g = Graph("Youtube_Video_Summarizer", start_node=get_youtube_video_data)
+    g.add_edge(get_youtube_video_data, extract_audio_from_video)
+    g.add_edge(extract_audio_from_video, transcribe_audio)
+    g.add_edge(transcribe_audio, classify_meeting_intent)
+    g.add_edge(classify_meeting_intent, summarize_job_interview)
 
 class YoutubeURL(BaseModel):
     url: str = Field(..., description="URL of the youtube video")
