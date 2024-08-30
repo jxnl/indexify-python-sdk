@@ -1,45 +1,45 @@
 import unittest
 from typing import List, Optional
 
-from indexify.extractor_sdk.data import BaseData
-from indexify.extractor_sdk.extractor import ExtractorWrapper, extractor
-from indexify.extractor_sdk.local_cache import CacheAwareExtractorWrapper
+from indexify.functions_sdk.data_objects import BaseData
+from indexify.functions_sdk.indexify_functions import IndexifyFunctionWrapper, indexify_function
+from indexify.functions_sdk.local_cache import CacheAwareFunctionWrapper
 
 
-class TestExtractorWrapper(unittest.TestCase):
+class TestFunctionWrapper(unittest.TestCase):
     def test_basic_features(self):
-        @extractor()
+        @indexify_function()
         def extractor_a(url: str) -> str:
             """
             Random description of extractor_a
             """
             return "hello"
 
-        extractor_wrapper = ExtractorWrapper(extractor_a)
-        result = extractor_wrapper.extract(BaseData.from_data(url="foo"))
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_a)
+        result = extractor_wrapper.run(BaseData.from_data(url="foo"))
         self.assertEqual(result[0].payload, "hello")
 
     def test_get_output_model(self):
-        @extractor()
+        @indexify_function()
         def extractor_b(url: str) -> str:
             """
             Random description of extractor_b
             """
             return "hello"
 
-        extractor_wrapper = ExtractorWrapper(extractor_b)
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_b)
         result = extractor_wrapper.get_output_model()
         self.assertEqual(result, str)
 
     def test_list_output_model(self):
-        @extractor()
+        @indexify_function()
         def extractor_b(url: str) -> List[str]:
             """
             Random description of extractor_b
             """
             return ["hello", "world"]
 
-        extractor_wrapper = ExtractorWrapper(extractor_b)
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_b)
         result = extractor_wrapper.get_output_model()
         self.assertEqual(result, List[str])
 
@@ -60,35 +60,35 @@ class TestExtractorWrapper(unittest.TestCase):
 
 class TestCacheAwareExtractorWrapper(unittest.TestCase):
     def test_cache_aware_extractor_wrapper(self):
-        @extractor()
+        @indexify_function()
         def extractor_a(url: str) -> str:
             """
             Random description of extractor_a
             """
             return "hello"
 
-        extractor_wrapper = ExtractorWrapper(extractor_a)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_a)
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_a", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload, "hello")
 
     def test_list_output_model_cache(self):
-        @extractor()
+        @indexify_function()
         def extractor_b(url: str) -> List[str]:
             """
             Random description of extractor_b
             """
             return ["hello", "world"]
 
-        extractor_wrapper = ExtractorWrapper(extractor_b)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_b)
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_b", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload, "hello")
@@ -102,18 +102,18 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             metadata: str
             some_value: int
 
-        @extractor()
+        @indexify_function()
         def extractor_x(url: str) -> TestModel:
             """
             Random description of extractor_c
             """
             return TestModel(payload=b"hello", metadata="world", some_value=1)
 
-        extractor_wrapper = ExtractorWrapper(extractor_x)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_x)
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_x", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload.payload, b"hello")
@@ -137,7 +137,7 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
             some_value: int
             payload_b: SomeModel
 
-        @extractor()
+        @indexify_function()
         def extractor_y(url: str) -> SomeOtherModel:
             """
             Random description of extractor_y
@@ -161,11 +161,11 @@ class TestCacheAwareExtractorWrapper(unittest.TestCase):
                 ),
             )
 
-        extractor_wrapper = ExtractorWrapper(extractor_y)
-        cache_aware_extractor_wrapper = CacheAwareExtractorWrapper(
+        extractor_wrapper = IndexifyFunctionWrapper(extractor_y)
+        cache_aware_extractor_wrapper = CacheAwareFunctionWrapper(
             "extractor_cache", "test_graph", extractor_wrapper
         )
-        result = cache_aware_extractor_wrapper.extract(
+        result = cache_aware_extractor_wrapper.run(
             "extractor_y", BaseData.from_data(url="foo")
         )
         self.assertEqual(result[0].payload.payload_a[0].data_payload, [b"oh my"])

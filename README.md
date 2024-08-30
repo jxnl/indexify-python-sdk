@@ -21,7 +21,7 @@ The input of the first function becomes the input to the HTTP endpoint of the Gr
 
 ```python
 from pydantic import BaseModel
-from indexify import extractor
+from indexify import indexify_function
 
 class Document(BaseModel):
     text: str

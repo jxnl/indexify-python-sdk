@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, RootModel
 
-from .data import BaseData
+from .data_objects import BaseData
 
 CachedOutput = RootModel[List[BaseData]]
 

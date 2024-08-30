@@ -8,9 +8,8 @@ from pydantic import BaseModel, Json
 from rich import print
 
 from indexify.base_client import BaseClient
-from indexify.extractor_sdk.data import BaseData, File
-from indexify.extractor_sdk.extractor import Extractor, extractor
-from indexify.extractor_sdk.local_cache import CacheAwareExtractorWrapper
+from indexify.functions_sdk.data_objects import BaseData, File
+from indexify.functions_sdk.local_cache import CacheAwareFunctionWrapper
 from indexify.graph import Graph
 
 
@@ -22,7 +21,7 @@ class ContentTree(BaseModel):
 
 class LocalRunner(BaseClient):
     def __init__(self, cache_dir: str = "./indexify_local_runner_cache"):
-        self._extractors: Dict[str, CacheAwareExtractorWrapper] = {}
+        self._extractors: Dict[str, CacheAwareFunctionWrapper] = {}
         self._cache_dir = cache_dir
         self._graphs: Dict[str, Graph] = {}
         self._results: Dict[str, Dict[str, List[BaseData]]] = {}
@@ -54,11 +53,11 @@ class LocalRunner(BaseClient):
             node_name, input_data = queue.popleft()
             extractor_construct = self._extractors.setdefault(
                 node_name,
-                CacheAwareExtractorWrapper(
+                CacheAwareFunctionWrapper(
                     self._cache_dir, g.name, g.get_extractor(node_name)
                 ),
             )
-            extractor_results = extractor_construct.extract(node_name, input_data)
+            extractor_results = extractor_construct.run(node_name, input_data)
             for result in extractor_results:
                 result.content_id = generate()
             outputs[node_name].extend(extractor_results)
@@ -80,7 +79,7 @@ class LocalRunner(BaseClient):
                     queue.append((out_edge, output))
 
     def _route(self, g: Graph, node_name: str, input: Type[BaseData]) -> Optional[str]:
-        if str(type(input)) == "<class 'indexify.extractor_sdk.data.DynamicModel'>":
+        if str(type(input)) == "<class 'indexify.functions_sdk.data_objects.DynamicModel'>":
             return g.routers[node_name](**input.model_dump())
         return g.routers[node_name](input.payload)
 

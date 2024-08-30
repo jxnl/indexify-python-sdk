@@ -1,0 +1,27 @@
+## Graph Registration
+
+1. Create a graph with compute functions and a start node.
+2. Register the graph with the Indexify service.
+3. The code of the graph is serialized and stored with the graph definition.
+4. The client also sends a static version of the graph definition.
+
+
+## Scheduling Steps
+
+1. Create a task for the first node of the graph. Match the constraints.
+2. Run the function and store the outputs.
+3. The scheduler reads all the edges from the current node.
+4. The scheduler looks if there are any router functions for the current node.
+5. If there are router functions, the scheduler creates a new task for the router functions
+6. The router functions has to return names of valid edges from the current node.
+7. The scheduler also creates tasks to any of the edges defined statically for the current node.
+8. The scheduler creates the tasks for the edges that the routers returned.
+9. Repeat for all the nodes.
+
+
+## Ingestion Steps
+1. Ingest an object and serialize them to JSON.
+2. Store them in the DB. 
+3. Tell the scheduler about the data being ingested and the ID and the storage location.
+
+## Index Creation.
