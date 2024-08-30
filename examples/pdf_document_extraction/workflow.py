@@ -4,14 +4,14 @@ from typing import List, Optional, Union
 import httpx
 from pydantic import BaseModel
 
-from indexify.extractor_sdk.data import BaseData, File
-from indexify.extractor_sdk.extractor import Extractor, extractor
+from indexify.functions_sdk.data_objects import BaseData, File
+from indexify.functions_sdk.indexify_functions import IndexifyFunction,indexify_function 
 from indexify.extractors.pdf_parser import Page, PageFragmentType, PDFParser
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
 
 
-@extractor()
+@indexify_function()
 def download_pdf(url: str) -> File:
     """
     Download pdf from url
@@ -25,7 +25,7 @@ class Document(BaseModel):
     pages: List[Page]
 
 
-@extractor()
+@indexify_function()
 def parse_pdf(file: File) -> Document:
     """
     Parse pdf file and returns pages:
@@ -42,7 +42,7 @@ class TextChunk(BaseData):
     embeddings: Optional[List[float]] = None
 
 
-@extractor()
+@indexify_function()
 def extract_chunks(document: Document) -> List[TextChunk]:
     """
     Extract chunks from document
@@ -67,7 +67,7 @@ class ImageDescription(BaseModel):
     figure_number: int
 
 
-@extractor()
+@indexify_function()
 def describe_images(document: Document) -> List[ImageDescription]:
     """
     Describe images in document
@@ -76,7 +76,7 @@ def describe_images(document: Document) -> List[ImageDescription]:
     return descriptions
 
 
-class TextEmbeddingExtractor(Extractor):
+class TextEmbeddingExtractor(IndexifyFunction):
     name = "text-embedding-extractor"
     description = "Extractor class that captures an embedding model"
     system_dependencies = []
@@ -86,7 +86,7 @@ class TextEmbeddingExtractor(Extractor):
         super().__init__()
         self.model = None
 
-    def extract(self, input: TextChunk) -> TextChunk:
+    def run(self, input: TextChunk) -> TextChunk:
         if self.model is None:
             from sentence_transformers import SentenceTransformer
 
@@ -103,7 +103,7 @@ class ImageWithEmbedding(BaseModel):
     figure_number: int
 
 
-class ImageEmbeddingExtractor(Extractor):
+class ImageEmbeddingExtractor(IndexifyFunction):
     name = "image-embedding"
     description = "Extractor class that captures an embedding model"
     system_dependencies = []
@@ -113,7 +113,7 @@ class ImageEmbeddingExtractor(Extractor):
         super().__init__()
         self.model = None
 
-    def extract(self, document: Document) -> List[ImageWithEmbedding]:
+    def run(self, document: Document) -> List[ImageWithEmbedding]:
         from PIL import Image
         from sentence_transformers import SentenceTransformer
 
@@ -151,7 +151,7 @@ class TextEmbeddingTable(LanceModel):
     page_number: int
 
 
-class LanceDBWriter(Extractor):
+class LanceDBWriter(IndexifyFunction):
     name = "lancedb_writer"
     python_dependencies = ["lancedb", "pyarrow"]
 
@@ -168,7 +168,7 @@ class LanceDBWriter(Extractor):
             "image_embeddings", schema=ImageEmbeddingTable, exist_ok=True
         )
 
-    def extract(self, input: Union[ImageWithEmbedding, TextChunk]) -> bool:
+    def run(self, input: Union[ImageWithEmbedding, TextChunk]) -> bool:
         if type(input) == ImageWithEmbedding:
             self._clip_table.add(
                 [

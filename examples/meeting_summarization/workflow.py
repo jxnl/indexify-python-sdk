@@ -2,8 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from indexify.extractor_sdk.data import File
-from indexify.extractor_sdk.extractor import extractor
+from indexify.functions_sdk.indexify_functions import indexify_function
+from indexify.functions_sdk.data_objects import File 
 from indexify.graph import Graph
 from indexify.local_runner import LocalRunner
 
@@ -13,7 +13,7 @@ class YoutubeURL(BaseModel):
     resolution: str = Field("480p", description="Resolution of the video")
 
 
-@extractor()
+@indexify_function()
 def download_youtube_video(url: YoutubeURL) -> List[File]:
     """
     Download the youtube video from the url.
@@ -27,7 +27,7 @@ def download_youtube_video(url: YoutubeURL) -> List[File]:
     return [File(data=content, mime_type="video/mp4")]
 
 
-@extractor()
+@indexify_function()
 def extract_audio_from_video(file: File) -> File:
     """
     Extract the audio from the video.
@@ -58,7 +58,7 @@ class Transcription(BaseModel):
     classification: Optional[SpeechClassification] = None
 
 
-@extractor()
+@indexify_function()
 def transcribe_audio(file: File) -> Transcription:
     """
     Transcribe audio and diarize speakers.
@@ -75,7 +75,7 @@ def transcribe_audio(file: File) -> Transcription:
     return Transcription(segments=audio_segments)
 
 
-@extractor()
+@indexify_function()
 def classify_meeting_intent(speech: Transcription) -> Transcription:
     """
     Classify the intent of the audio.
@@ -143,7 +143,7 @@ class Summary(BaseModel):
     summary: str
 
 
-@extractor()
+@indexify_function()
 def summarize_job_interview(speech: Transcription) -> Summary:
     """
     Summarize the job interview.
@@ -175,7 +175,7 @@ def summarize_job_interview(speech: Transcription) -> Summary:
     return Summary(summary=response)
 
 
-@extractor()
+@indexify_function()
 def summarize_sales_call(speech: Transcription) -> Summary:
     """
     Summarize the sales call.
@@ -206,7 +206,6 @@ def create_graph():
     g = Graph("Youtube_Video_Summarizer", start_node=download_youtube_video)
     g.add_edge(download_youtube_video, extract_audio_from_video)
     g.add_edge(extract_audio_from_video, transcribe_audio)
-    g.add_edge(transcribe_audio, write_transcription_to_schema)
     g.add_edge(transcribe_audio, classify_meeting_intent)
 
     g.add_node(summarize_job_interview)
