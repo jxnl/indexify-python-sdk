@@ -32,7 +32,7 @@ pip install indexify
 3. If a function returns a list, the downstream functions will be called with each item in the list in **parallel**.
 4. The input of the first function becomes the input to the HTTP endpoint of the Graph.
 
-## Functional Features**
+## Functional Features
 1. There is **NO** limit to volume of data being ingested since we use blob stores for storing metadata and objects
 2. The server can handle 10s of 1000s of files being ingested into the graphs in parallel. 
 3. The scheduler reacts under 8 microseconds to ingestion events, so it's suitable for workflows which needs to run in realtime.
