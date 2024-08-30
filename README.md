@@ -12,12 +12,24 @@ Start by writing and testing your pipelines locally using your data, then deploy
 pip install indexify
 ```
 
+## Examples 
+**[PDF Document Extraction](./examples/pdf_document_extraction/workflow.py)**
+1. Extracts text, tables and images from an ingested PDF file
+2. Indexes the text using MiniLM-L6-v2, the images with CLIP
+3. Writes the results into a vector database.
+
+**[Youtube Transcription Summarizer](./examples/meeting_minutes_extraction/workflow.py)**
+1. Downloads Youtube Video
+2. Extracts audio from the video and transcribes using `Faster Whisper` 
+3. Uses Llama 3.1 backed by `Llama.cpp` to understand and classify the nature of the video.
+4. Routes the transcription dynamically to one of the transcription summarizer to retain specific summarization attributes.
+5. Finally the entire transcription is embedded and stored in a vector database for retrieval.
+
 ## Quick Start
-Write compute functions, and build a compute graph that process your data. The output of each functions is automatically passed to the next function in the graph by Indexify. 
-
-If a function returns a list, Indexify will automatically invoke the next function with each item in the list in **parallel**.
-
-The input of the first function becomes the input to the HTTP endpoint of the Graph.
+1. Write data processing functions in Python and use Pydantic objects for returning complex data types from functions
+2. Connect functions using a graph interface. Indexify automatically stores function outputs and passes them along to downstream functions. 
+3. If a function returns a list, the downstream functions will be called with each item in the list in **parallel**.
+4. The input of the first function becomes the input to the HTTP endpoint of the Graph.
 
 ```python
 from pydantic import BaseModel
@@ -92,16 +104,3 @@ graph_outputs = client.graph_outputs(g.name, output_id)
 ```python
 graph_inputs = client.graph_inputs(g.name)
 ```
-
-## Examples 
-**[PDF Document Extraction](./examples/pdf_document_extraction/workflow.py)**
-1. Extracts text, tables and images from an ingested PDF file
-2. Indexes the text using MiniLM-L6-v2, the images with CLIP
-3. Writes the results into a vector database.
-
-**[Youtube Transcription Summarizer](./examples/meeting_minutes_extraction/workflow.py)**
-1. Downloads Youtube Video
-2. Extracts audio from the video and transcribes using `Faster Whisper` 
-3. Uses Llama 3.1 backed by `Llama.cpp` to understand and classify the nature of the video.
-4. Routes the transcription dynamically to one of the transcription summarizer to retain specific summarization attributes.
-5. Finally the entire transcription is embedded and stored in a vector database for retrieval.
