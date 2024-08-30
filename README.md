@@ -99,5 +99,9 @@ graph_inputs = client.graph_inputs(g.name)
 2. Indexes the text using MiniLM-L6-v2, the images with CLIP
 3. Writes the results into a vector database.
 
-**[Meeting Minutes Extraction](./examples/meeting_minutes_extraction/workflow.py)**
-1. Extracts transcriptions 
+**[Youtube Transcription Summarizer](./examples/meeting_minutes_extraction/workflow.py)**
+1. Downloads Youtube Video
+2. Extracts audio from the video and transcribes using `Faster Whisper` 
+3. Uses Llama 3.1 backed by `Llama.cpp` to understand and classify the nature of the video.
+4. Routes the transcription dynamically to one of the transcription summarizer to retain specific summarization attributes.
+5. Finally the entire transcription is embedded and stored in a vector database for retrieval.
