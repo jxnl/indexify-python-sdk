@@ -94,10 +94,10 @@ graph_inputs = client.graph_inputs(g.name)
 ```
 
 ## Examples 
-** [PDF Document Extraction](./examples/pdf_document_extraction/workflow.py) **
+**[PDF Document Extraction](./examples/pdf_document_extraction/workflow.py)**
 1. Extracts text, tables and images from an ingested PDF file
 2. Indexes the text using MiniLM-L6-v2, the images with CLIP
 3. Writes the results into a vector database.
 
-** [Meeting Minutes Extraction](./examples/meeting_minutes_extraction/workflow.py) **
+**[Meeting Minutes Extraction](./examples/meeting_minutes_extraction/workflow.py)**
 1. Extracts transcriptions 
