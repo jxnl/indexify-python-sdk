@@ -81,6 +81,7 @@ graph_outputs = client.graph_outputs(g.name, output_id)
 ```
 
 ## Deploy the Graph to Indexify Server for Production
+> Work In Progress - The version of server that works with python based graphs haven't been released yet. It will be shortly released. Join discord for development updates. 
 ```python
 from indexify import IndexifyClient
 
