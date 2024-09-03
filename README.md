@@ -41,6 +41,7 @@ pip install indexify
 ```python
 from pydantic import BaseModel
 from indexify import indexify_function
+from typing import Dict, Any, Optional, List
 
 # Define function inputs and outputs
 class Document(BaseModel):
